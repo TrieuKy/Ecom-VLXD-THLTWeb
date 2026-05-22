@@ -1,0 +1,122 @@
+﻿@model TrieuDoanKy_W2.Models.Product
+@{
+    ViewData["Title"] = "Cập Nhật Sản Phẩm";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <h2><i class="fas fa-edit me-2" style="color:var(--primary);"></i>Cập Nhật Sản Phẩm</h2>
+</div>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index">Sản phẩm</a></li>
+        <li class="breadcrumb-item active">Cập nhật</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header py-3" style="background: linear-gradient(135deg, #856404, #664d03);">
+                <h5 class="mb-0 text-white">
+                    <i class="fas fa-edit me-2"></i>Chỉnh Sửa - #@Model.Id: @Model.Name
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Update" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <!-- Hidden ID - quan trọng! -->
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="ImageUrl" />
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Name" class="form-label">
+                                <i class="fas fa-tag me-1 text-primary"></i>Tên Sản Phẩm <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" placeholder="Nhập tên sản phẩm..." />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Price" class="form-label">
+                                <i class="fas fa-dollar-sign me-1 text-success"></i>Giá (₫) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="Price" class="form-control" />
+                                <span class="input-group-text">₫</span>
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label">
+                                <i class="fas fa-align-left me-1 text-info"></i>Mô Tả
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CategoryId" class="form-label">
+                                <i class="fas fa-list me-1 text-warning"></i>Danh Mục
+                            </label>
+                            <select asp-for="CategoryId" asp-items="ViewBag.Categories" class="form-select">
+                                <option value="">-- Chọn danh mục --</option>
+                            </select>
+                        </div>
+
+                        <!-- Hiển thị ảnh hiện tại -->
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label">Ảnh Hiện Tại</label>
+                                <div>
+                                    <img src="@Model.ImageUrl" alt="@Model.Name"
+                                         class="img-thumbnail" style="max-height:100px;" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <hr class="my-4" />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning px-4">
+                            <i class="fas fa-save me-2"></i>Lưu Thay Đổi
+                        </button>
+                        <a asp-action="Display" asp-route-id="@Model.Id" class="btn btn-outline-info px-4">
+                            <i class="fas fa-eye me-2"></i>Xem Chi Tiết
+                        </a>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-arrow-left me-2"></i>Quay Lại
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white fw-bold">
+                <i class="fas fa-info-circle me-2"></i>Thông Tin Hiện Tại
+            </div>
+            <div class="card-body small">
+                <p><strong>ID:</strong> #@Model.Id</p>
+                <p><strong>Tên:</strong> @Model.Name</p>
+                <p><strong>Giá:</strong> @Model.Price.ToString("N0") ₫</p>
+                <p class="mb-0"><strong>Danh mục:</strong> #@Model.CategoryId</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

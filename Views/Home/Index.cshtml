@@ -1,0 +1,196 @@
+﻿@{
+    ViewData["Title"] = "Trang Chủ";
+}
+
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <h1 class="display-4 fw-bold mb-3">
+                    Vật Liệu Xây Dựng<br />
+                    <span style="color:#f9d423;">Chất Lượng - Uy Tín</span>
+                </h1>
+                <p class="lead mb-4 text-white-50">
+                    Cung cấp đầy đủ vật liệu xây dựng từ các thương hiệu uy tín hàng đầu.
+                    Giao hàng tận nơi, giá cả cạnh tranh, hỗ trợ 24/7.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a asp-controller="Product" asp-action="Index" class="btn btn-warning fw-bold px-4 py-2">
+                        <i class="fas fa-boxes me-2"></i>Xem Sản Phẩm
+                    </a>
+                    <a href="#" class="btn btn-outline-light px-4 py-2">
+                        <i class="fas fa-phone me-2"></i>Tư Vấn Ngay
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-5 text-center d-none d-md-block">
+                <div style="font-size: 150px; opacity: 0.15; line-height: 1;">
+                    <i class="fas fa-building"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="container-fluid px-4 mb-4">
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3">
+                <div style="font-size:2rem; color: var(--primary);"><i class="fas fa-boxes"></i></div>
+                <div class="fw-bold fs-4">500+</div>
+                <div class="text-muted small">Sản phẩm</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3">
+                <div style="font-size:2rem; color: #198754;"><i class="fas fa-users"></i></div>
+                <div class="fw-bold fs-4">10,000+</div>
+                <div class="text-muted small">Khách hàng</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3">
+                <div style="font-size:2rem; color: #0dcaf0;"><i class="fas fa-truck"></i></div>
+                <div class="fw-bold fs-4">24h</div>
+                <div class="text-muted small">Giao hàng nhanh</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center p-3">
+                <div style="font-size:2rem; color: #ffc107;"><i class="fas fa-star"></i></div>
+                <div class="fw-bold fs-4">4.9/5</div>
+                <div class="text-muted small">Đánh giá</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh mục sản phẩm -->
+<div class="container-fluid px-4 mb-4">
+    <div class="page-header">
+        <h2><i class="fas fa-th-large me-2" style="color:var(--primary);"></i>Danh Mục Sản Phẩm</h2>
+    </div>
+    <div class="row g-3">
+        @{
+            var categories = new[]
+            {
+        new { Icon = "fas fa-bricks", Name = "Xi Măng & Gạch", Count = "120 SP", Color = "#e65c00" },
+        new { Icon = "fas fa-water", Name = "Sơn & Chống Thấm", Count = "85 SP", Color = "#0dcaf0" },
+        new { Icon = "fas fa-cubes", Name = "Thép & Sắt", Count = "60 SP", Color = "#6c757d" },
+        new { Icon = "fas fa-toilet", Name = "Thiết Bị Vệ Sinh", Count = "95 SP", Color = "#198754" },
+        new { Icon = "fas fa-lightbulb", Name = "Điện & Chiếu Sáng", Count = "75 SP", Color = "#ffc107" },
+        new { Icon = "fas fa-door-open", Name = "Cửa & Cổng", Count = "50 SP", Color = "#dc3545" },
+        };
+        }
+        @foreach (var cat in categories)
+        {
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card text-center p-3 h-100" style="cursor:pointer; transition: transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size:2.5rem; color:@cat.Color;" class="mb-2">
+                        <i class="@cat.Icon"></i>
+                    </div>
+                    <div class="fw-semibold small">@cat.Name</div>
+                    <div class="text-muted" style="font-size:11px;">@cat.Count</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Sản phẩm nổi bật -->
+<div class="container-fluid px-4 mb-4">
+    <div class="page-header">
+        <h2><i class="fas fa-fire me-2" style="color:var(--primary);"></i>Sản Phẩm Nổi Bật</h2>
+    </div>
+    <div class="row g-3">
+        @{
+            var featured = new[]
+            {
+        new { Name = "Xi Măng Hà Tiên PCB40", Price = "95,000", Unit = "bao 50kg", Badge = "Bán chạy", BadgeClass = "danger" },
+        new { Name = "Gạch Ốp Lát Đồng Tâm 60x60", Price = "185,000", Unit = "m²", Badge = "Mới", BadgeClass = "primary" },
+        new { Name = "Thép Hòa Phát D10", Price = "12,500", Unit = "kg", Badge = "Giảm giá", BadgeClass = "warning" },
+        new { Name = "Sơn Dulux Nội Thất 5L", Price = "420,000", Unit = "thùng", Badge = "Hot", BadgeClass = "danger" },
+        };
+        }
+        @foreach (var p in featured)
+        {
+            <div class="col-6 col-md-3">
+                <div class="card h-100" style="transition: box-shadow 0.2s;"
+                     onmouseover="this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
+                     onmouseout="this.style.boxShadow=''">
+                    <div class="bg-light d-flex align-items-center justify-content-center"
+                         style="height:160px; border-radius: 10px 10px 0 0; position:relative;">
+                        <i class="fas fa-box" style="font-size:4rem; color:#ddd;"></i>
+                        <span class="badge bg-@p.BadgeClass position-absolute top-0 start-0 m-2">@p.Badge</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-1 fw-semibold" style="font-size:13px;">@p.Name</h6>
+                        <div class="text-danger fw-bold">@p.Price ₫<span class="text-muted fw-normal small">/@p.Unit</span></div>
+                        <a asp-controller="Product" asp-action="Index" class="btn btn-primary btn-sm w-100 mt-2">
+                            <i class="fas fa-shopping-cart me-1"></i>Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="text-center mt-3">
+        <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary px-5">
+            <i class="fas fa-arrow-right me-2"></i>Xem tất cả sản phẩm
+        </a>
+    </div>
+</div>
+
+<!-- Cam kết -->
+<div class="container-fluid px-4 mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #fff5f0, #fff);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-size:2rem; color:var(--primary);"><i class="fas fa-certificate"></i></div>
+                    <div>
+                        <div class="fw-bold">Hàng Chính Hãng</div>
+                        <div class="text-muted small">100% xuất xứ rõ ràng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #f0fff4, #fff);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-size:2rem; color:#198754;"><i class="fas fa-shipping-fast"></i></div>
+                    <div>
+                        <div class="fw-bold">Giao Hàng Tận Nơi</div>
+                        <div class="text-muted small">Nhanh chóng, an toàn</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #f0f8ff, #fff);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-size:2rem; color:#0dcaf0;"><i class="fas fa-headset"></i></div>
+                    <div>
+                        <div class="fw-bold">Hỗ Trợ 24/7</div>
+                        <div class="text-muted small">Tư vấn miễn phí</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #fffdf0, #fff);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-size:2rem; color:#ffc107;"><i class="fas fa-undo-alt"></i></div>
+                    <div>
+                        <div class="fw-bold">Đổi Trả 30 Ngày</div>
+                        <div class="text-muted small">Không phát sinh phí</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,84 @@
+﻿@model TrieuDoanKy_W2.Models.Product
+@{
+    ViewData["Title"] = "Xóa Sản Phẩm";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <h2><i class="fas fa-trash me-2 text-danger"></i>Xóa Sản Phẩm</h2>
+</div>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index">Sản phẩm</a></li>
+        <li class="breadcrumb-item active">Xóa</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white py-3">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Xác Nhận Xóa</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning me-2"></i>
+                    Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này <strong>không thể hoàn tác</strong>.
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4 text-center">
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <img src="@Model.ImageUrl" alt="@Model.Name"
+                                 class="img-fluid rounded" style="max-height:150px;" />
+                        }
+                        else
+                        {
+                            <div class="bg-light d-flex align-items-center justify-content-center rounded"
+                                 style="height:150px;">
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-8">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width:80px;">Mã SP</td>
+                                <td><span class="badge bg-secondary">#@Model.Id</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Tên</td>
+                                <td class="fw-bold">@Model.Name</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Giá</td>
+                                <td class="text-danger fw-bold">@Model.Price.ToString("N0") ₫</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Mô tả</td>
+                                <td class="text-muted small">@(string.IsNullOrEmpty(Model.Description) ? "Không có" : Model.Description)</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- FIX: Đúng form, đúng hidden field -->
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="fas fa-trash me-2"></i>Xác Nhận Xóa
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-times me-2"></i>Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
