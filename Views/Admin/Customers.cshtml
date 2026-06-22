@@ -1,0 +1,184 @@
+@model List<TrieuDoanKy_W2.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Quản Lý Khách Hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var orderStats = ViewBag.OrderStats as Dictionary<string, dynamic>;
+}
+
+<style>
+    .customer-table td { vertical-align: middle; font-size: 13px; padding: 12px; }
+    .customer-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 700; padding: 12px; background: #fafafa; }
+    .avatar-circle {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 14px; color: white; flex-shrink: 0;
+    }
+    .tier-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+    .tier-vip  { background: #fff3cd; color: #856404; }
+    .tier-good { background: #d1e7dd; color: #0a3622; }
+    .tier-new  { background: #cfe2ff; color: #084298; }
+</style>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color:#1a1a2e;">👥 Quản Lý Khách Hàng</h4>
+        <div class="text-muted small">Tổng cộng <strong>@Model.Count</strong> khách hàng đã đăng ký</div>
+    </div>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 rounded-3 p-3" style="background:linear-gradient(135deg,#1565c0,#0d6efd);">
+            <div class="text-white-50 small mb-1">Tổng khách hàng</div>
+            <div class="text-white fw-bold fs-4">@Model.Count</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-3 p-3" style="background:linear-gradient(135deg,#1a7a4a,#198754);">
+            <div class="text-white-50 small mb-1">Đã đặt hàng</div>
+            <div class="text-white fw-bold fs-4">
+                @(orderStats != null ? orderStats.Count : 0)
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-3 p-3" style="background:linear-gradient(135deg,#e65c00,#f9a825);">
+            <div class="text-white-50 small mb-1">Khách VIP (>5 đơn)</div>
+            <div class="text-white fw-bold fs-4">
+                @{
+                    int vipCount = 0;
+                    if (orderStats != null) {
+                        foreach (var u in Model) {
+                            if (orderStats.ContainsKey(u.Id) && orderStats[u.Id].Count > 5) vipCount++;
+                        }
+                    }
+                }
+                @vipCount
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 rounded-3 p-3" style="background:linear-gradient(135deg,#5e35b1,#7b1fa2);">
+            <div class="text-white-50 small mb-1">Khách mới (0 đơn)</div>
+            <div class="text-white fw-bold fs-4">
+                @(Model.Count - (orderStats?.Count ?? 0))
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer table -->
+<div class="card border-0 rounded-4 shadow-sm overflow-hidden">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="fas fa-users me-2 text-primary"></i>Danh Sách Khách Hàng</span>
+        <div class="input-group" style="max-width:260px;">
+            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted" style="font-size:12px;"></i></span>
+            <input type="text" id="searchCustomer" class="form-control border-start-0" placeholder="Tìm kiếm..." style="font-size:13px;" />
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table customer-table mb-0" id="customerTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Khách hàng</th>
+                    <th>Email</th>
+                    <th>Điện thoại</th>
+                    <th class="text-center">Số đơn</th>
+                    <th class="text-end">Tổng chi tiêu</th>
+                    <th class="text-center">Phân hạng</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{int idx = 1;}
+                @foreach (var user in Model)
+                {
+                    var hasStats = orderStats != null && orderStats.ContainsKey(user.Id);
+                    var orderCount = hasStats ? (int)orderStats![user.Id].Count : 0;
+                    var totalSpent = hasStats ? (decimal)orderStats![user.Id].Total : 0m;
+
+                    string tier = orderCount > 5 ? "VIP" : orderCount > 0 ? "Thân thiết" : "Mới";
+                    string tierClass = orderCount > 5 ? "tier-vip" : orderCount > 0 ? "tier-good" : "tier-new";
+                    string tierIcon = orderCount > 5 ? "👑" : orderCount > 0 ? "⭐" : "🆕";
+
+                    var colors = new[]{"#e65c00","#198754","#0d6efd","#7b1fa2","#0dcaf0","#dc3545","#fd7e14"};
+                    var avatarColor = colors[idx % colors.Length];
+                    var initials = string.IsNullOrEmpty(user.FullName) ? "?" : user.FullName.Trim()[0].ToString().ToUpper();
+
+                    <tr class="customer-row">
+                        <td class="text-muted fw-semibold">@idx</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-circle" style="background:@avatarColor;">@initials</div>
+                                <div>
+                                    <div class="fw-semibold">@(user.FullName ?? "Chưa cập nhật")</div>
+                                    @if (!string.IsNullOrEmpty(user.Address))
+                                    {
+                                        <div class="text-muted" style="font-size:11px; max-width:160px;" class="text-truncate">@user.Address</div>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="mailto:@user.Email" class="text-decoration-none text-primary">@user.Email</a>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(user.PhoneNumber))
+                            {
+                                <a href="tel:@user.PhoneNumber" class="text-decoration-none text-dark">@user.PhoneNumber</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (orderCount > 0)
+                            {
+                                <span class="fw-bold text-primary">@orderCount</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">0</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (totalSpent > 0)
+                            {
+                                <span class="fw-bold text-danger">@totalSpent.ToString("N0")₫</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="tier-badge @tierClass">@tierIcon @tier</span>
+                        </td>
+                    </tr>
+                    idx++;
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white text-muted small py-2 px-4">
+        Hiển thị <span id="visibleCount">@Model.Count</span> / @Model.Count khách hàng
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('searchCustomer').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.customer-row').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(q)) { row.style.display = ''; visible++; }
+        else { row.style.display = 'none'; }
+    });
+    document.getElementById('visibleCount').textContent = visible;
+});
+</script>
+}

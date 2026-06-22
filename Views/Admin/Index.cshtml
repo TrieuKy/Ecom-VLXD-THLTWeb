@@ -1,0 +1,384 @@
+@model List<TrieuDoanKy_W2.Models.Order>
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    /* ── KPI Cards ── */
+    .kpi-card {
+        border-radius: 16px; border: none; overflow: hidden;
+        transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.12) !important; }
+    .kpi-icon { font-size: 2.5rem; opacity: 0.25; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+    .kpi-label { font-size: 12px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .kpi-change { font-size: 12px; opacity: 0.7; margin-top: 6px; }
+
+    /* ── Section cards ── */
+    .dash-card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden; }
+    .dash-card .card-header { background: white; border-bottom: 2px solid #f5f5f5; padding: 16px 20px; font-weight: 700; }
+
+    /* ── Status donut legend ── */
+    .status-legend { display: flex; flex-direction: column; gap: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Low stock ── */
+    .low-stock-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+    .low-stock-item:last-child { border-bottom: none; }
+    .stock-num { font-size: 13px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+    .stock-zero  { background: #fee2e2; color: #dc3545; }
+    .stock-low   { background: #fef3c7; color: #d97706; }
+    .stock-ok    { background: #d1fae5; color: #059669; }
+
+    /* ── Top products ── */
+    .top-product-bar { height: 8px; border-radius: 4px; background: linear-gradient(135deg, #e65c00, #f9d423); }
+
+    /* ── Recent orders table ── */
+    .order-table td { vertical-align: middle; font-size: 13px; padding: 10px 12px; }
+    .order-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 600; padding: 12px; background: #fafafa; }
+    .status-badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+    .s-pending  { background: #fff3cd; color: #856404; }
+    .s-shipping { background: #cfe2ff; color: #084298; }
+    .s-done     { background: #d1e7dd; color: #0a3622; }
+    .s-cancel   { background: #f8d7da; color: #842029; }
+</style>
+
+<!-- Page title -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color:#1a1a2e;">📊 Tổng Quan Hệ Thống</h4>
+        <div class="text-muted small">Cập nhật: @DateTime.Now.ToString("HH:mm, dd/MM/yyyy")</div>
+    </div>
+    <a asp-controller="Product" asp-action="Create" class="btn btn-primary rounded-pill px-4">
+        <i class="fas fa-plus me-2"></i>Thêm Sản Phẩm
+    </a>
+</div>
+
+<!-- ════ KPI CARDS ════ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card kpi-card h-100 p-4" style="background: linear-gradient(135deg, #e65c00, #f9a825);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label text-white">Doanh Thu</div>
+                    <div class="kpi-value text-white">@((ViewBag.TotalRevenue as decimal? ?? 0).ToString("N0"))₫</div>
+                    <div class="kpi-change text-white">
+                        <i class="fas fa-check-circle me-1"></i>Đơn hoàn thành
+                    </div>
+                </div>
+                <i class="fas fa-wallet kpi-icon text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-card h-100 p-4" style="background: linear-gradient(135deg, #1a7a4a, #198754);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label text-white">Đơn Hàng</div>
+                    <div class="kpi-value text-white">@ViewBag.TotalOrders</div>
+                    <div class="kpi-change text-white">
+                        <i class="fas fa-clock me-1"></i>@ViewBag.OrdersPending chờ xử lý
+                    </div>
+                </div>
+                <i class="fas fa-shopping-bag kpi-icon text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-card h-100 p-4" style="background: linear-gradient(135deg, #1565c0, #0d6efd);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label text-white">Sản Phẩm</div>
+                    <div class="kpi-value text-white">@ViewBag.TotalProducts</div>
+                    <div class="kpi-change text-white">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        @((ViewBag.LowStockProducts as List<TrieuDoanKy_W2.Models.Product>)?.Count ?? 0) sắp hết kho
+                    </div>
+                </div>
+                <i class="fas fa-box kpi-icon text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card kpi-card h-100 p-4" style="background: linear-gradient(135deg, #5e35b1, #7b1fa2);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label text-white">Khách Hàng</div>
+                    <div class="kpi-value text-white">@ViewBag.TotalUsers</div>
+                    <div class="kpi-change text-white">
+                        <i class="fas fa-user-check me-1"></i>Đã đăng ký
+                    </div>
+                </div>
+                <i class="fas fa-users kpi-icon text-white"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ ROW 2: Chart + Status Donut ════ -->
+<div class="row g-3 mb-4">
+    <!-- Revenue chart -->
+    <div class="col-lg-8">
+        <div class="card dash-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-chart-bar me-2 text-primary"></i>Doanh Thu 6 Tháng Gần Nhất</span>
+                <span class="badge bg-primary rounded-pill">VNĐ</span>
+            </div>
+            <div class="card-body p-3" style="height:260px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Order status donut -->
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2 text-warning"></i>Trạng Thái Đơn Hàng
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center flex-column gap-3 p-3">
+                <div style="width:160px; height:160px; position:relative;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="status-legend w-100 px-2">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#ffc107;"></div>
+                        <div class="flex-fill">Chờ xác nhận</div>
+                        <div class="fw-bold">@ViewBag.OrdersPending</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#0dcaf0;"></div>
+                        <div class="flex-fill">Đang giao</div>
+                        <div class="fw-bold">@ViewBag.OrdersShipping</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#198754;"></div>
+                        <div class="flex-fill">Hoàn thành</div>
+                        <div class="fw-bold">@ViewBag.OrdersDone</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#dc3545;"></div>
+                        <div class="flex-fill">Đã hủy</div>
+                        <div class="fw-bold">@ViewBag.OrdersCancelled</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ ROW 3: Low Stock + Top Products ════ -->
+<div class="row g-3 mb-4">
+    <!-- Low stock alert -->
+    <div class="col-md-5">
+        <div class="card dash-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Sản Phẩm Sắp Hết Hàng</span>
+                <a asp-action="Products" class="btn btn-sm btn-outline-danger rounded-pill px-3" style="font-size:11px;">Xem tất cả</a>
+            </div>
+            <div class="card-body p-3">
+                @{
+                    var lowStock = ViewBag.LowStockProducts as List<TrieuDoanKy_W2.Models.Product> ?? new();
+                }
+                @if (lowStock.Any())
+                {
+                    @foreach (var p in lowStock)
+                    {
+                        <div class="low-stock-item">
+                            <div style="width:36px;height:36px;border-radius:8px;background:#f5f5f5;overflow:hidden;flex-shrink:0;">
+                                @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                {
+                                    <img src="@p.ImageUrl" style="width:100%;height:100%;object-fit:cover;" alt="" />
+                                }
+                                else
+                                {
+                                    <div class="d-flex align-items-center justify-content-center h-100">
+                                        <i class="fas fa-box text-muted" style="font-size:14px;"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="flex-fill overflow-hidden">
+                                <div class="fw-semibold text-truncate" style="font-size:13px;">@p.Name</div>
+                            </div>
+                            <span class="stock-num @(p.Stock == 0 ? "stock-zero" : p.Stock <= 5 ? "stock-low" : "stock-ok")">
+                                @p.Stock @p.Unit
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-success py-4">
+                        <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                        <div style="font-size:13px;">Tất cả sản phẩm đủ hàng</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Top selling -->
+    <div class="col-md-7">
+        <div class="card dash-card h-100">
+            <div class="card-header">
+                <i class="fas fa-fire me-2 text-danger"></i>Top Sản Phẩm Bán Chạy
+            </div>
+            <div class="card-body p-3">
+                @{
+                    var topProds = ViewBag.TopProducts as System.Collections.IEnumerable;
+                    int rank = 1;
+                    int maxSold = 1;
+                }
+                @if (topProds != null)
+                {
+                    @foreach (dynamic item in topProds)
+                    {
+                        if (rank == 1) { maxSold = (int)item.TotalSold + 1; }
+                        var pct = maxSold > 0 ? (int)((decimal)item.TotalSold / maxSold * 100) : 0;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge @(rank == 1 ? "bg-warning text-dark" : rank == 2 ? "bg-secondary" : "bg-light text-muted")"
+                                          style="width:24px; font-size:11px;">@rank</span>
+                                    <span style="font-size:13px; font-weight:600;" class="text-truncate" title="@item.Name">@item.Name</span>
+                                </div>
+                                <span class="fw-bold text-primary" style="font-size:13px; flex-shrink:0; margin-left:8px;">@item.TotalSold</span>
+                            </div>
+                            <div style="background:#f0f0f0; height:8px; border-radius:4px;">
+                                <div class="top-product-bar" style="width:@(pct)%;"></div>
+                            </div>
+                        </div>
+                        rank++;
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4" style="font-size:13px;">
+                        <i class="fas fa-chart-bar fa-2x mb-2 d-block opacity-25"></i>Chưa có dữ liệu bán hàng
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ RECENT ORDERS TABLE ════ -->
+<div class="card dash-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list-alt me-2 text-primary"></i>Đơn Hàng Gần Đây</span>
+        <a asp-action="Orders" class="btn btn-sm btn-outline-primary rounded-pill px-3" style="font-size:11px;">Xem tất cả</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table order-table mb-0">
+            <thead>
+                <tr>
+                    <th>Mã ĐH</th>
+                    <th>Khách hàng</th>
+                    <th>Ngày đặt</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th class="text-center">Thanh toán</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    var badgeClass = order.Status == "Hoàn thành" ? "s-done"
+                        : order.Status == "Đang giao" ? "s-shipping"
+                        : order.Status == "Đã hủy" ? "s-cancel"
+                        : "s-pending";
+                    <tr>
+                        <td><strong class="text-primary">#@order.Id</strong></td>
+                        <td>
+                            <div class="fw-semibold" style="font-size:13px;">@(order.User?.FullName ?? "Khách")</div>
+                            <div class="text-muted" style="font-size:11px;">@(order.User?.Email ?? "")</div>
+                        </td>
+                        <td>@order.OrderDate.ToString("dd/MM/yy HH:mm")</td>
+                        <td class="text-end text-danger fw-bold">@order.TotalPrice.ToString("N0")₫</td>
+                        <td class="text-center">
+                            @if (order.PaymentMethod == "VietQR")
+                            {
+                                <span class="badge bg-primary" style="font-size:10px;"><i class="fas fa-qrcode me-1"></i>QR</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success" style="font-size:10px;"><i class="fas fa-money-bill me-1"></i>COD</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="status-badge @badgeClass">@order.Status</span>
+                        </td>
+                        <td class="text-center">
+                            <a asp-action="Orders" class="btn btn-xs btn-outline-secondary" style="font-size:11px; padding:2px 8px;">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Revenue Bar Chart
+    const chartLabels = @Html.Raw(ViewBag.ChartLabels ?? "[]");
+    const chartData   = @Html.Raw(ViewBag.ChartData ?? "[]");
+
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Doanh thu (₫)',
+                data: chartData,
+                backgroundColor: 'rgba(230,92,0,0.15)',
+                borderColor: '#e65c00',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: v => (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v) + '₫',
+                        font: { size: 11 }
+                    },
+                    grid: { color: 'rgba(0,0,0,0.04)' }
+                },
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+        }
+    });
+
+    // Status Donut Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Chờ xác nhận','Đang giao','Hoàn thành','Đã hủy'],
+            datasets: [{
+                data: [@ViewBag.OrdersPending, @ViewBag.OrdersShipping, @ViewBag.OrdersDone, @ViewBag.OrdersCancelled],
+                backgroundColor: ['#ffc107','#0dcaf0','#198754','#dc3545'],
+                borderWidth: 0, hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                label: ctx => ` ${ctx.label}: ${ctx.parsed}`
+            }}}
+        }
+    });
+</script>
+}

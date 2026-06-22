@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin VLXD Shop</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { background-color: #f0f2f7; font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; }
+
+        /* ── Sidebar ── */
+        #sidebar {
+            width: 260px; position: fixed; top: 0; left: 0; height: 100vh;
+            background: linear-gradient(180deg, #0f1b35 0%, #1a1a2e 100%);
+            color: #fff; z-index: 1000; display: flex; flex-direction: column;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            overflow-y: auto;
+        }
+        .sidebar-brand {
+            padding: 24px 20px 20px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+        .sidebar-brand .brand-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            background: linear-gradient(135deg, #e65c00, #f9a825);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px; font-size: 1.3rem;
+        }
+        .sidebar-brand .brand-name {
+            font-size: 14px; font-weight: 800; color: white; line-height: 1.2;
+        }
+        .sidebar-brand .brand-sub { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+        .sidebar-section-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.35); padding: 16px 20px 8px;
+        }
+
+        #sidebar .nav-link {
+            color: rgba(255,255,255,0.65); padding: 11px 20px;
+            display: flex; align-items: center; gap: 12px;
+            border-radius: 0; border-left: 3px solid transparent;
+            font-size: 14px; font-weight: 500; transition: all 0.2s;
+            text-decoration: none;
+        }
+        #sidebar .nav-link i { width: 18px; text-align: center; font-size: 15px; }
+        #sidebar .nav-link:hover {
+            color: white; background: rgba(255,255,255,0.08);
+            border-left-color: rgba(230,92,0,0.5);
+        }
+        #sidebar .nav-link.active {
+            color: white; background: rgba(230,92,0,0.15);
+            border-left-color: #e65c00; font-weight: 700;
+        }
+        #sidebar .nav-link.active i { color: #f9a825; }
+
+        .sidebar-footer {
+            margin-top: auto; padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        /* ── Main Content ── */
+        #main-content { margin-left: 260px; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* ── Topbar ── */
+        .admin-topbar {
+            background: white; padding: 14px 24px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .topbar-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+        .topbar-breadcrumb { font-size: 12px; color: #aaa; }
+
+        /* ── Content area ── */
+        .admin-body { padding: 24px; flex: 1; }
+
+        /* ── Alert ── */
+        .admin-alert { border-radius: 12px; font-size: 14px; }
+
+        /* ── Responsive ── */
+        @@media (max-width: 768px) {
+            #sidebar { width: 0; overflow: hidden; }
+            #main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ══ SIDEBAR ══ -->
+    <div id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><i class="fas fa-hard-hat text-white"></i></div>
+            <div class="brand-name">VLXD Shop</div>
+            <div class="brand-sub">Quản Trị Hệ Thống</div>
+        </div>
+
+        <div class="sidebar-section-label">Tổng quan</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")"
+                   asp-controller="Admin" asp-action="Index">
+                    <i class="fas fa-chart-pie"></i>Dashboard
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-section-label">Quản lý</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Orders" ? "active" : "")"
+                   asp-controller="Admin" asp-action="Orders">
+                    <i class="fas fa-shopping-bag"></i>Đơn Hàng
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Products" || (ViewContext.RouteData.Values["controller"]?.ToString() == "Product" && (ViewContext.RouteData.Values["action"]?.ToString() == "Create" || ViewContext.RouteData.Values["action"]?.ToString() == "Update")) ? "active" : "")"
+                   asp-controller="Admin" asp-action="Products">
+                    <i class="fas fa-boxes"></i>Sản Phẩm
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Customers" ? "active" : "")"
+                   asp-controller="Admin" asp-action="Customers">
+                    <i class="fas fa-users"></i>Khách Hàng
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-section-label">Cửa hàng</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Product" asp-action="Create">
+                    <i class="fas fa-plus-circle"></i>Thêm Sản Phẩm
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Home" asp-action="Promotions">
+                    <i class="fas fa-tags"></i>Khuyến Mãi
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <a class="nav-link mb-1" asp-controller="Home" asp-action="Index" style="border-left:none; padding: 8px 0;">
+                <i class="fas fa-globe me-2"></i><span style="font-size:13px;">Xem Website</span>
+            </a>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button type="submit" class="btn w-100 text-start"
+                        style="background:rgba(220,53,69,0.15); color:#ff6b6b; border:none; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600;">
+                    <i class="fas fa-sign-out-alt me-2"></i>Đăng Xuất
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <div id="main-content">
+        <!-- Topbar -->
+        <div class="admin-topbar">
+            <div>
+                <div class="topbar-title">@ViewData["Title"]</div>
+                <div class="topbar-breadcrumb">Admin Panel / @ViewData["Title"]</div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <!-- Notification bell placeholder -->
+                <button class="btn btn-light border rounded-circle" style="width:38px;height:38px;padding:0;" title="Thông báo">
+                    <i class="fas fa-bell text-muted" style="font-size:14px;"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle border d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" style="font-size:13px;">
+                        <div style="width:28px;height:28px;background:linear-gradient(135deg,#e65c00,#f9a825);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:11px;">A</div>
+                        Admin
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="font-size:13px; min-width:180px;">
+                        <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fas fa-user me-2 text-muted"></i>Hồ sơ</a></li>
+                        <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-globe me-2 text-muted"></i>Xem Website</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form asp-controller="Account" asp-action="Logout" method="post">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Đăng Xuất
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="px-4 pt-3">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show admin-alert">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show admin-alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+        </div>
+
+        <!-- Body -->
+        <div class="admin-body">
+            @RenderBody()
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

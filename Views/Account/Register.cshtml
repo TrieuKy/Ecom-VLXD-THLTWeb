@@ -1,0 +1,110 @@
+@{
+    ViewData["Title"] = "Đăng Ký Tài Khoản";
+}
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5"
+     style="background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);">
+    <div class="container" style="max-width:520px;">
+
+        <div class="text-center mb-4">
+            <a asp-controller="Home" asp-action="Index" class="text-decoration-none">
+                <div style="font-size:3rem; color:#e65c00;"><i class="fas fa-hard-hat"></i></div>
+                <h2 class="fw-bold text-white mt-2">VLXD<span style="color:#f9d423;">Shop</span></h2>
+            </a>
+            <p class="text-white-50">Tạo tài khoản mới</p>
+        </div>
+
+        <div class="card border-0" style="border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.4);">
+            <div class="card-body p-4">
+
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-user me-2 text-warning"></i>Họ và tên</label>
+                        <input id="reg-fullname" name="FullName" type="text" class="form-control form-control-lg"
+                               placeholder="Nguyễn Văn A" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-envelope me-2 text-warning"></i>Email</label>
+                        <input id="reg-email" name="Email" type="email" class="form-control form-control-lg"
+                               placeholder="example@gmail.com" required />
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold"><i class="fas fa-lock me-2 text-warning"></i>Mật khẩu</label>
+                            <div class="input-group">
+                                <input id="reg-password" name="Password" type="password" class="form-control"
+                                       placeholder="Tối thiểu 6 ký tự" required />
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="togglePassword('reg-password', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold"><i class="fas fa-check-circle me-2 text-warning"></i>Xác nhận</label>
+                            <input id="reg-confirm" name="ConfirmPassword" type="password" class="form-control"
+                                   placeholder="Nhập lại mật khẩu" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-phone me-2 text-warning"></i>Số điện thoại</label>
+                        <input id="reg-phone" name="PhoneNumber" type="tel" class="form-control form-control-lg"
+                               placeholder="0901234567" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold"><i class="fas fa-map-marker-alt me-2 text-warning"></i>Địa chỉ</label>
+                        <input id="reg-address" name="Address" type="text" class="form-control form-control-lg"
+                               placeholder="Số nhà, đường, phường/xã, quận/huyện" />
+                    </div>
+
+                    <button type="submit" id="btn-register" class="btn btn-warning w-100 btn-lg fw-bold mb-3">
+                        <i class="fas fa-user-plus me-2"></i>Tạo Tài Khoản
+                    </button>
+                </form>
+
+                <div class="d-flex align-items-center mb-3">
+                    <hr class="flex-grow-1" /><span class="mx-3 text-muted small">hoặc</span><hr class="flex-grow-1" />
+                </div>
+
+                <form asp-action="ExternalLogin" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="submit" name="provider" value="Google" id="btn-google-reg"
+                                class="btn btn-outline-danger flex-fill fw-semibold">
+                            <i class="fab fa-google me-2"></i>Google
+                        </button>
+                        <button type="submit" name="provider" value="Facebook" id="btn-facebook-reg"
+                                class="btn btn-outline-primary flex-fill fw-semibold">
+                            <i class="fab fa-facebook-f me-2"></i>Facebook
+                        </button>
+                    </div>
+                </form>
+
+                <p class="text-center text-muted small mb-0">
+                    Đã có tài khoản?
+                    <a asp-action="Login" class="text-warning fw-semibold">Đăng nhập</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+}

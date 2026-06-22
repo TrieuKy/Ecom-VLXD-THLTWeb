@@ -1,125 +1,482 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using TrieuDoanKy_W2.Data;
 using TrieuDoanKy_W2.Models;
-using TrieuDoanKy_W2.Models.Repositories;
+using TrieuDoanKy_W2.Models.ViewModels;
+using TrieuDoanKy_W2.Services;
 
 namespace TrieuDoanKy_W2.Controllers
 {
     public class ProductController : Controller
     {
-        private readonly IProductRepository _productRepository;
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
 
-        public ProductController(IProductRepository productRepository, ICategoryRepository categoryRepository)
+        public ProductController(ApplicationDbContext context,
+                                 UserManager<ApplicationUser> userManager,
+                                 IEmailService emailService,
+                                 IConfiguration config)
         {
-            _productRepository = productRepository;
-            _categoryRepository = categoryRepository;
+            _context = context;
+            _userManager = userManager;
+            _emailService = emailService;
+            _config = config;
         }
 
         // GET: Product/Index
-        public IActionResult Index()
+        public async Task<IActionResult> Index(string? search, int? categoryId, string? sort, decimal? minPrice, decimal? maxPrice)
         {
-            var products = _productRepository.GetAll();
+            var query = _context.Products.Include(p => p.Category).AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.Name.Contains(search) || (p.Description != null && p.Description.Contains(search)));
+                ViewBag.SearchTerm = search;
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+                ViewBag.SelectedCategoryId = categoryId.Value;
+            }
+
+            if (minPrice.HasValue)
+                query = query.Where(p => p.Price >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(p => p.Price <= maxPrice.Value);
+
+            // Sort
+            query = sort switch
+            {
+                "price_asc" => query.OrderBy(p => p.Price),
+                "price_desc" => query.OrderByDescending(p => p.Price),
+                "name_asc" => query.OrderBy(p => p.Name),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+            ViewBag.CurrentSort = sort ?? "newest";
+            ViewBag.MinPrice = minPrice;
+            ViewBag.MaxPrice = maxPrice;
+
+            // Load categories for filter sidebar
+            var categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
+            ViewBag.FilterCategories = categories;
+            ViewBag.Categories = new SelectList(categories, "Id", "Name");
+
+            var products = await query.ToListAsync();
             return View(products);
         }
 
         // GET: Product/Display/5
-        public IActionResult Display(int id)
+        public async Task<IActionResult> Display(int id)
         {
-            var product = _productRepository.GetById(id);
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null) return NotFound();
+
+            // Related products (same category, exclude current)
+            var related = await _context.Products
+                .Include(p => p.Category)
+                .Where(p => p.CategoryId == product.CategoryId && p.Id != id)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(4)
+                .ToListAsync();
+            ViewBag.RelatedProducts = related;
+
             return View(product);
         }
 
         // GET: Product/Add
-        public IActionResult Add()
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Add()
         {
-            LoadCategories();
+            await LoadCategoriesAsync();
             return View();
         }
 
-        // POST: Product/Add  -- FIX: chỉ giữ 1 action Add POST với file upload
+        // POST: Product/Add
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Add(Product product, IFormFile imageUrl, List<IFormFile> imageUrls)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Add(Product product, IFormFile? imageUrl, List<IFormFile>? imageUrls)
         {
             if (ModelState.IsValid)
             {
-                // Lưu ảnh chính
                 if (imageUrl != null && imageUrl.Length > 0)
-                {
-                    product.ImageUrl = await SaveImage(imageUrl);
-                }
+                    product.ImageUrl = await SaveImageAsync(imageUrl);
 
-                // Lưu ảnh phụ
-                if (imageUrls != null && imageUrls.Count > 0)
+                if (imageUrls != null && imageUrls.Any())
                 {
-                    product.ImageUrls = new List<string>();
+                    var urls = new List<string>();
                     foreach (var file in imageUrls)
-                    {
                         if (file.Length > 0)
-                            product.ImageUrls.Add(await SaveImage(file));
-                    }
+                            urls.Add(await SaveImageAsync(file));
+                    product.ImageUrls = System.Text.Json.JsonSerializer.Serialize(urls);
                 }
 
-                _productRepository.Add(product);
-                TempData["Success"] = $"Đã thêm sản phẩm \"{product.Name}\" thành công!";
-                return RedirectToAction("Index");
-            }
+                product.CreatedAt = DateTime.Now;
 
-            LoadCategories();
-            return View(product);
         }
 
-        // GET: Product/Update/5
-        public IActionResult Update(int id)
-        {
-            var product = _productRepository.GetById(id);
-            if (product == null) return NotFound();
-            LoadCategories();
-            return View(product);
-        }
-
-        // POST: Product/Update  -- FIX: thêm [HttpPost]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Update(Product product)
-        {
-            if (ModelState.IsValid)
-            {
-                _productRepository.Update(product);
-                TempData["Success"] = $"Đã cập nhật sản phẩm \"{product.Name}\" thành công!";
-                return RedirectToAction("Index");
-            }
-
-            LoadCategories();
-            return View(product);
-        }
-
-        // GET: Product/Delete/5
-        public IActionResult Delete(int id)
-        {
-            var product = _productRepository.GetById(id);
-            if (product == null) return NotFound();
-            return View(product);
-        }
-
-        // POST: Product/Delete  -- FIX: dùng asp-action="Delete" trực tiếp
+        // POST: Product/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public IActionResult DeleteConfirmed(int id)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = _productRepository.GetById(id);
+            var product = await _context.Products.FindAsync(id);
             if (product != null)
             {
-                _productRepository.Delete(id);
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
                 TempData["Success"] = $"Đã xóa sản phẩm \"{product.Name}\" thành công!";
             }
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(Index));
         }
 
-        // Helper: Lưu ảnh vào wwwroot/images
-        private async Task<string> SaveImage(IFormFile image)
+        // ────── ĐẶT HÀNG ──────
+
+        // GET: Product/Order/5
+        [Authorize]
+        public async Task<IActionResult> Order(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null) return NotFound();
+
+            if (product.Stock <= 0)
+            {
+                TempData["Error"] = "Sản phẩm này hiện đã hết hàng!";
+                return RedirectToAction(nameof(Display), new { id });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var model = new OrderViewModel
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                Price = product.Price,
+                ImageUrl = product.ImageUrl,
+                Unit = product.Unit,
+                Stock = product.Stock,
+                ReceiverName = user?.FullName ?? "",
+                PhoneNumber = user?.PhoneNumber ?? "",
+                AddressLine = user?.Address ?? "",
+                Province = "TP. Hồ Chí Minh"
+            };
+            return View(model);
+        }
+
+        // POST: Product/Order
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Order(OrderViewModel model)
+        {
+            // Refill product info for view re-render on error
+            var product = await _context.Products.FindAsync(model.ProductId);
+            if (product == null) return NotFound();
+
+            model.ProductName = product.Name;
+            model.Price = product.Price;
+            model.ImageUrl = product.ImageUrl;
+            model.Unit = product.Unit;
+            model.Stock = product.Stock;
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            // Kiểm tra tồn kho
+            if (product.Stock < model.Quantity)
+            {
+                ModelState.AddModelError("Quantity", $"Số lượng vượt quá tồn kho! Còn {product.Stock} {product.Unit} trong kho.");
+                return View(model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            // Tạo đơn hàng
+            var order = new Order
+            {
+                UserId = user!.Id,
+                OrderDate = DateTime.Now,
+                TotalPrice = product.Price * model.Quantity,
+                Status = "Chờ xác nhận",
+                ShippingAddress = model.ShippingAddress,
+                PhoneNumber = model.PhoneNumber,
+                PaymentMethod = model.PaymentMethod
+            };
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            // Thêm chi tiết đơn hàng
+            var detail = new OrderDetail
+            {
+                OrderId = order.Id,
+                ProductId = product.Id,
+                Quantity = model.Quantity,
+                Price = product.Price
+            };
+            _context.OrderDetails.Add(detail);
+
+            // Trừ tồn kho
+            product.Stock -= model.Quantity;
+
+            await _context.SaveChangesAsync();
+
+            // Gửi email xác nhận
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                await _emailService.SendOrderConfirmationAsync(
+                    user.Email,
+                    user.FullName,
+                    order.Id,
+                    product.Name,
+                    model.Quantity,
+                    order.TotalPrice,
+                    model.ShippingAddress
+                );
+            }
+
+            TempData["OrderId"] = order.Id;
+            TempData["TotalPrice"] = order.TotalPrice.ToString("N0");
+            TempData["ProductName"] = product.Name;
+            TempData["PaymentMethod"] = model.PaymentMethod;
+            return RedirectToAction(nameof(OrderSuccess), new { id = order.Id });
+        }
+
+        // GET: Product/OrderSuccess/5
+        [Authorize]
+        public IActionResult OrderSuccess(int id)
+        {
+            ViewBag.OrderId = TempData["OrderId"];
+            ViewBag.TotalPrice = TempData["TotalPrice"];
+            ViewBag.ProductName = TempData["ProductName"];
+            ViewBag.PaymentMethod = TempData["PaymentMethod"];
+
+            // VietQR config
+            ViewBag.BankId = _config["BankInfo:BankId"];
+            ViewBag.AccountNo = _config["BankInfo:AccountNo"];
+            ViewBag.AccountName = _config["BankInfo:AccountName"];
+            ViewBag.BankName = _config["BankInfo:BankName"];
+            return View();
+        }
+
+        // ────── GIỎ HÀNG ──────
+
+        [Authorize]
+        public async Task<IActionResult> Cart()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var items = await _context.ShoppingCartItems
+                .Where(i => i.ApplicationUserId == user!.Id)
+                .Include(i => i.Product)
+                .ToListAsync();
+
+            var model = new CartViewModel { Items = items };
+            return View(model);
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var product = await _context.Products.FindAsync(productId);
+            if (product == null) return NotFound();
+
+            var existing = await _context.ShoppingCartItems
+                .FirstOrDefaultAsync(i => i.ApplicationUserId == user!.Id && i.ProductId == productId);
+
+            int newQty = existing != null ? existing.Quantity + quantity : quantity;
+
+            // Kiểm tra tồn kho
+            if (newQty > product.Stock)
+            {
+                TempData["Error"] = $"Chỉ còn {product.Stock} sản phẩm trong kho!";
+                return RedirectToAction(nameof(Display), new { id = productId });
+            }
+
+            if (existing != null)
+                existing.Quantity = newQty;
+            else
+                _context.ShoppingCartItems.Add(new ShoppingCartItem
+                {
+                    ApplicationUserId = user!.Id,
+                    ProductId = productId,
+                    Quantity = newQty
+                });
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Đã thêm vào giỏ hàng!";
+            return RedirectToAction(nameof(Display), new { id = productId });
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> RemoveFromCart(int id)
+        {
+            var item = await _context.ShoppingCartItems.FindAsync(id);
+            if (item != null)
+            {
+                _context.ShoppingCartItems.Remove(item);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Cart));
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> UpdateCartQuantity(int id, int quantity)
+        {
+            var item = await _context.ShoppingCartItems
+                .Include(i => i.Product)
+                .FirstOrDefaultAsync(i => i.Id == id);
+            if (item != null)
+            {
+                if (quantity > 0)
+                {
+                    // Kiểm tra tồn kho
+                    if (item.Product != null && quantity > item.Product.Stock)
+                    {
+                        TempData["Error"] = $"Chỉ còn {item.Product.Stock} sản phẩm trong kho!";
+                        return RedirectToAction(nameof(Cart));
+                    }
+                    item.Quantity = quantity;
+                }
+                else
+                {
+                    _context.ShoppingCartItems.Remove(item);
+                }
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Cart));
+        }
+
+        // ────── CHECKOUT TỪ GIỎ HÀNG ──────
+
+        [Authorize]
+        public async Task<IActionResult> Checkout()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var items = await _context.ShoppingCartItems
+                .Where(i => i.ApplicationUserId == user!.Id)
+                .Include(i => i.Product)
+                .ToListAsync();
+
+            if (!items.Any()) return RedirectToAction(nameof(Cart));
+
+            var total = items.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
+
+            var model = new OrderViewModel
+            {
+                ProductId = 0, // 0 means multi-item cart checkout
+                ProductName = "Đơn hàng từ giỏ hàng (" + items.Count + " loại SP)",
+                Price = total,
+                Quantity = 1,
+                ReceiverName = user?.FullName ?? "",
+                PhoneNumber = user?.PhoneNumber ?? "",
+                AddressLine = user?.Address ?? "",
+                Province = "TP. Hồ Chí Minh"
+            };
+
+            return View("Order", model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Checkout(OrderViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var items = await _context.ShoppingCartItems
+                .Where(i => i.ApplicationUserId == user!.Id)
+                .Include(i => i.Product)
+                .ToListAsync();
+
+            if (!items.Any()) return RedirectToAction(nameof(Cart));
+
+            if (!ModelState.IsValid)
+            {
+                // Re-calculate price for view if validation fails
+                model.Price = items.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
+                model.ProductName = "Đơn hàng từ giỏ hàng (" + items.Count + " loại SP)";
+                model.Quantity = 1;
+                return View("Order", model);
+            }
+
+            // Kiểm tra tồn kho cho tất cả sản phẩm
+            foreach (var item in items)
+            {
+                if (item.Product != null && item.Quantity > item.Product.Stock)
+                {
+                    TempData["Error"] = $"Sản phẩm \"{item.Product.Name}\" chỉ còn {item.Product.Stock} trong kho. Vui lòng cập nhật giỏ hàng.";
+                    return RedirectToAction(nameof(Cart));
+                }
+            }
+
+            var order = new Order
+            {
+                UserId = user!.Id,
+                OrderDate = DateTime.Now,
+                TotalPrice = items.Sum(i => (i.Product?.Price ?? 0) * i.Quantity),
+                Status = "Chờ xác nhận",
+                ShippingAddress = model.ShippingAddress,
+                PhoneNumber = model.PhoneNumber,
+                PaymentMethod = model.PaymentMethod
+            };
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            foreach (var item in items)
+            {
+                var detail = new OrderDetail
+                {
+                    OrderId = order.Id,
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    Price = item.Product?.Price ?? 0
+                };
+                _context.OrderDetails.Add(detail);
+
+                // Trừ tồn kho
+                if (item.Product != null)
+                    item.Product.Stock -= item.Quantity;
+            }
+
+            // Xóa giỏ hàng
+            _context.ShoppingCartItems.RemoveRange(items);
+            await _context.SaveChangesAsync();
+
+            // Email
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                var itemsDesc = string.Join(", ", items.Select(i => $"{i.Product?.Name} (x{i.Quantity})"));
+                await _emailService.SendOrderConfirmationAsync(
+                    user.Email, user.FullName, order.Id, itemsDesc,
+                    items.Sum(i => i.Quantity), order.TotalPrice, model.ShippingAddress
+                );
+            }
+
+            TempData["OrderId"] = order.Id;
+            TempData["TotalPrice"] = order.TotalPrice.ToString("N0");
+            TempData["ProductName"] = "Đơn hàng gồm " + items.Count + " loại sản phẩm";
+            TempData["PaymentMethod"] = model.PaymentMethod;
+            return RedirectToAction(nameof(OrderSuccess), new { id = order.Id });
+        }
+
+        // ────── HELPERS ──────
+
+        private async Task<string> SaveImageAsync(IFormFile image)
         {
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
             if (!Directory.Exists(uploadsFolder))
@@ -127,19 +484,14 @@ namespace TrieuDoanKy_W2.Controllers
 
             var uniqueFileName = Guid.NewGuid().ToString() + "_" + image.FileName;
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await image.CopyToAsync(fileStream);
-            }
-
+            using var fileStream = new FileStream(filePath, FileMode.Create);
+            await image.CopyToAsync(fileStream);
             return "/images/" + uniqueFileName;
         }
 
-        // Helper: Load danh mục vào ViewBag
-        private void LoadCategories()
+        private async Task LoadCategoriesAsync()
         {
-            var categories = _categoryRepository.GetAllCategories();
+            var categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
         }
     }

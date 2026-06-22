@@ -1,0 +1,141 @@
+@model List<TrieuDoanKy_W2.Models.Order>
+@{
+    ViewData["Title"] = "Quản Lý Đơn Hàng";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    @{
+        var pendingCount = Model.Count(o => o.Status == "Chờ xác nhận");
+        var shippingCount = Model.Count(o => o.Status == "Đang giao");
+        var doneCount = Model.Count(o => o.Status == "Hoàn thành");
+        var cancelledCount = Model.Count(o => o.Status == "Đã hủy");
+    }
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+            <div class="fw-bold fs-3 text-warning">@pendingCount</div>
+            <div class="small text-muted">Chờ xác nhận</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+            <div class="fw-bold fs-3 text-info">@shippingCount</div>
+            <div class="small text-muted">Đang giao</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+            <div class="fw-bold fs-3 text-success">@doneCount</div>
+            <div class="small text-muted">Hoàn thành</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+            <div class="fw-bold fs-3 text-danger">@cancelledCount</div>
+            <div class="small text-muted">Đã hủy</div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-list-alt me-2 text-primary"></i>Danh sách đơn hàng</h5>
+        <span class="badge bg-primary rounded-pill">@Model.Count tổng</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="ordersTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-3">Mã ĐH</th>
+                        <th>Khách hàng</th>
+                        <th>Điện thoại</th>
+                        <th>Sản phẩm</th>
+                        <th>Tổng tiền</th>
+                        <th>Ngày đặt</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        var itemsText = order.OrderDetails != null && order.OrderDetails.Any()
+                            ? string.Join(", ", order.OrderDetails.Select(od => $"{od.Product?.Name} (x{od.Quantity})"))
+                            : "Không rõ";
+
+                        var statusClass = order.Status switch
+                        {
+                            "Hoàn thành" => "bg-success",
+                            "Đang giao" => "bg-info text-dark",
+                            "Đã hủy" => "bg-danger",
+                            _ => "bg-warning text-dark"
+                        };
+
+                        <tr>
+                            <td class="ps-3">
+                                <span class="fw-bold text-primary">#@order.Id</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@(order.User?.FullName ?? "N/A")</div>
+                                <small class="text-muted">@(order.User?.Email ?? "")</small>
+                            </td>
+                            <td>@order.PhoneNumber</td>
+                            <td style="max-width:200px;">
+                                <span class="text-truncate d-inline-block" style="max-width:180px;" title="@itemsText">
+                                    @itemsText
+                                </span>
+                            </td>
+                            <td class="text-danger fw-bold">@order.TotalPrice.ToString("N0") ₫</td>
+                            <td>
+                                <div>@order.OrderDate.ToString("dd/MM/yyyy")</div>
+                                <small class="text-muted">@order.OrderDate.ToString("HH:mm")</small>
+                            </td>
+                            <td>
+                                <span class="badge @statusClass px-2 py-1 rounded-pill">@order.Status</span>
+                            </td>
+                            <td>
+                                <form asp-action="UpdateOrderStatus" method="post" class="d-flex gap-1 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@order.Id" />
+                                    <select name="status" class="form-select form-select-sm" style="width:130px; font-size:12px;">
+                                        <option value="Chờ xác nhận" selected="@(order.Status == "Chờ xác nhận" ? "selected" : null)">Chờ xác nhận</option>
+                                        <option value="Đang giao" selected="@(order.Status == "Đang giao" ? "selected" : null)">Đang giao</option>
+                                        <option value="Hoàn thành" selected="@(order.Status == "Hoàn thành" ? "selected" : null)">Hoàn thành</option>
+                                        <option value="Đã hủy" selected="@(order.Status == "Đã hủy" ? "selected" : null)">Đã hủy</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Lưu">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#ordersTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                },
+                "order": [[5, "desc"]],
+                "pageLength": 15
+            });
+        });
+    </script>
+}

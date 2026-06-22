@@ -1,0 +1,117 @@
+@model TrieuDoanKy_W2.Models.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng Nhập";
+}
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);">
+    <div class="container" style="max-width:440px;">
+
+        <!-- Logo -->
+        <div class="text-center mb-4">
+            <a asp-controller="Home" asp-action="Index" class="text-decoration-none">
+                <div style="font-size:3rem; color:#e65c00;"><i class="fas fa-hard-hat"></i></div>
+                <h2 class="fw-bold text-white mt-2">VLXD<span style="color:#f9d423;">Shop</span></h2>
+            </a>
+            <p class="text-white-50">Đăng nhập để tiếp tục</p>
+        </div>
+
+        <div class="card border-0" style="border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.4);">
+            <div class="card-body p-4">
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger rounded-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                    </div>
+                }
+
+                <!-- Form login -->
+                <form asp-action="Login" method="post">
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-envelope me-2 text-warning"></i>Email</label>
+                        <input id="login-email" name="Email" type="email" class="form-control form-control-lg"
+                               placeholder="example@gmail.com" required />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-lock me-2 text-warning"></i>Mật khẩu</label>
+                        <div class="input-group">
+                            <input id="login-password" name="Password" type="password" class="form-control form-control-lg"
+                                   placeholder="Nhập mật khẩu" required />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('login-password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="RememberMe" id="rememberMe" />
+                            <label class="form-check-label small" for="rememberMe">Ghi nhớ đăng nhập</label>
+                        </div>
+                        <a href="#" class="small text-warning">Quên mật khẩu?</a>
+                    </div>
+
+                    <button type="submit" id="btn-login" class="btn btn-warning w-100 btn-lg fw-bold mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Đăng Nhập
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="d-flex align-items-center mb-3">
+                    <hr class="flex-grow-1" />
+                    <span class="mx-3 text-muted small">hoặc đăng nhập với</span>
+                    <hr class="flex-grow-1" />
+                </div>
+
+                <!-- Social Login -->
+                <form asp-action="ExternalLogin" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="provider" value="Google" id="btn-google"
+                                class="btn btn-outline-danger flex-fill fw-semibold">
+                            <i class="fab fa-google me-2"></i>Google
+                        </button>
+                        <button type="submit" name="provider" value="Facebook" id="btn-facebook"
+                                class="btn btn-outline-primary flex-fill fw-semibold">
+                            <i class="fab fa-facebook-f me-2"></i>Facebook
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-3" />
+                <p class="text-center text-muted small mb-0">
+                    Chưa có tài khoản?
+                    <a asp-action="Register" class="text-warning fw-semibold">Đăng ký ngay</a>
+                </p>
+            </div>
+        </div>
+
+        <p class="text-center text-white-50 small mt-3">
+            <a asp-controller="Home" asp-action="Index" class="text-white-50">
+                <i class="fas fa-arrow-left me-1"></i>Về trang chủ
+            </a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+}

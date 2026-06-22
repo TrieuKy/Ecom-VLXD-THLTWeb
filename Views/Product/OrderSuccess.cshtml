@@ -1,0 +1,317 @@
+@{
+    ViewData["Title"] = "Xác Nhận Đơn Hàng";
+    var orderId    = ViewBag.OrderId?.ToString() ?? "N/A";
+    var totalPrice = ViewBag.TotalPrice?.ToString() ?? "0";
+    var productName = ViewBag.ProductName?.ToString() ?? "";
+    var method     = (ViewBag.PaymentMethod as string ?? "COD").Trim();
+    var isCOD      = method != "VietQR";
+
+    var bankId      = ViewBag.BankId as string;
+    var accountNo   = ViewBag.AccountNo as string;
+    var accountName = ViewBag.AccountName as string;
+    var bankName    = ViewBag.BankName as string;
+}
+
+<style>
+    .success-wrap { max-width: 640px; margin: 30px auto; }
+
+    /* ─── COD Success ─── */
+    .success-card {
+        background: white; border-radius: 24px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    .success-header-cod {
+        background: linear-gradient(135deg, #1a7a4a, #198754);
+        padding: 40px 32px; text-align: center; position: relative; overflow: hidden;
+    }
+    .success-header-cod::before {
+        content: ''; position: absolute; top: -40px; right: -40px;
+        width: 150px; height: 150px; border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .success-icon {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px; font-size: 2.2rem; color: white;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .success-body { padding: 32px; }
+
+    /* ─── Order info box ─── */
+    .order-info-box {
+        background: #f8f9fa; border-radius: 14px; padding: 20px; margin-bottom: 24px;
+    }
+    .order-info-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;
+    }
+    .order-info-row:last-child { border-bottom: none; }
+    .order-info-label { color: #777; }
+    .order-info-value { font-weight: 700; color: #1a1a2e; }
+
+    /* ─── COD steps ─── */
+    .cod-steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 24px; }
+    .cod-step { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 20px; position: relative; }
+    .cod-step::before {
+        content: ''; position: absolute; left: 19px; top: 40px;
+        width: 2px; height: calc(100% - 20px);
+        background: #e9ecef;
+    }
+    .cod-step:last-child::before { display: none; }
+    .cod-step-num {
+        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 14px; color: white;
+        background: linear-gradient(135deg, #e65c00, #f9d423);
+        box-shadow: 0 3px 10px rgba(230,92,0,0.3);
+    }
+    .cod-step-content h6 { font-weight: 700; margin: 0 0 4px; color: #1a1a2e; }
+    .cod-step-content p { font-size: 13px; color: #777; margin: 0; }
+
+    /* ─── QR Payment ─── */
+    .qr-header {
+        background: linear-gradient(135deg, #0f3460, #1a1a2e);
+        padding: 32px; text-align: center; position: relative; overflow: hidden;
+    }
+    .qr-header::after {
+        content: ''; position: absolute; bottom: -30px; right: -30px;
+        width: 120px; height: 120px; border-radius: 50%;
+        background: rgba(249,212,35,0.1);
+    }
+    .qr-amount {
+        background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+        border-radius: 12px; padding: 14px 24px; display: inline-block; margin-top: 12px;
+    }
+    .qr-img-wrap {
+        background: white; border-radius: 16px;
+        padding: 16px; display: inline-block;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        margin: 20px auto;
+    }
+    .bank-info-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px;
+    }
+    .bank-info-row:last-child { border-bottom: none; }
+    .btn-paid {
+        background: linear-gradient(135deg, #198754, #20c997);
+        color: white; border: none; border-radius: 12px;
+        padding: 14px 24px; font-size: 16px; font-weight: 700;
+        width: 100%; cursor: pointer; transition: all 0.3s;
+    }
+    .btn-paid:hover { opacity: 0.9; color: white; }
+
+    /* Confetti animation for COD success */
+    .confetti-dot {
+        position: fixed; pointer-events: none;
+        width: 10px; height: 10px; border-radius: 2px;
+        animation: confetti-fall 3s ease-in forwards;
+    }
+    @@keyframes confetti-fall {
+        0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+</style>
+
+<div class="success-wrap">
+
+    @if (isCOD)
+    {
+        <!-- ════ COD SUCCESS ════ -->
+        <div class="success-card" id="success-card">
+            <div class="success-header-cod">
+                <div style="position:relative; z-index:1;">
+                    <div class="success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h3 class="text-white fw-bold mb-1">Đặt Hàng Thành Công!</h3>
+                    <p class="text-white mb-0" style="opacity:0.8;">Cảm ơn bạn đã mua hàng tại VLXD Shop</p>
+                </div>
+            </div>
+            <div class="success-body">
+                <!-- Order info -->
+                <div class="order-info-box">
+                    <div class="order-info-row">
+                        <span class="order-info-label"><i class="fas fa-hashtag me-2 text-warning"></i>Mã đơn hàng</span>
+                        <span class="order-info-value text-primary fs-5">#@orderId</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(productName))
+                    {
+                        <div class="order-info-row">
+                            <span class="order-info-label"><i class="fas fa-box me-2 text-warning"></i>Sản phẩm</span>
+                            <span class="order-info-value" style="max-width:200px; text-align:right; font-size:13px;">@productName</span>
+                        </div>
+                    }
+                    <div class="order-info-row">
+                        <span class="order-info-label"><i class="fas fa-money-bill-wave me-2 text-warning"></i>Tổng tiền</span>
+                        <span class="order-info-value text-danger fs-5">@totalPrice ₫</span>
+                    </div>
+                    <div class="order-info-row">
+                        <span class="order-info-label"><i class="fas fa-credit-card me-2 text-warning"></i>Thanh toán</span>
+                        <span class="order-info-value">
+                            <span class="badge bg-success px-3 py-2 rounded-pill">
+                                <i class="fas fa-money-bill-wave me-1"></i>COD – Trả khi nhận hàng
+                            </span>
+                        </span>
+                    </div>
+                    <div class="order-info-row">
+                        <span class="order-info-label"><i class="fas fa-clock me-2 text-warning"></i>Thời gian giao hàng</span>
+                        <span class="order-info-value" style="color:#198754;">24 – 48 giờ</span>
+                    </div>
+                </div>
+
+                <!-- Next steps -->
+                <h6 class="fw-bold mb-3" style="color:#1a1a2e;">Các bước tiếp theo</h6>
+                <div class="cod-steps">
+                    <div class="cod-step">
+                        <div class="cod-step-num">1</div>
+                        <div class="cod-step-content">
+                            <h6>Đơn hàng đang được xác nhận</h6>
+                            <p>Chúng tôi sẽ liên hệ xác nhận qua số điện thoại của bạn trong vòng 30 phút.</p>
+                        </div>
+                    </div>
+                    <div class="cod-step">
+                        <div class="cod-step-num">2</div>
+                        <div class="cod-step-content">
+                            <h6>Chuẩn bị & Đóng gói hàng</h6>
+                            <p>Đội ngũ kho hàng sẽ kiểm tra và đóng gói hàng cẩn thận.</p>
+                        </div>
+                    </div>
+                    <div class="cod-step">
+                        <div class="cod-step-num">3</div>
+                        <div class="cod-step-content">
+                            <h6>Giao hàng & Thanh toán</h6>
+                            <p>Bạn thanh toán <strong class="text-danger">@totalPrice ₫</strong> trực tiếp cho shipper khi nhận hàng. Vui lòng chuẩn bị tiền mặt đúng số tiền.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-3 flex-wrap">
+                    <a asp-controller="Account" asp-action="Profile" class="btn btn-outline-primary rounded-pill px-4 flex-fill">
+                        <i class="fas fa-file-invoice me-2"></i>Xem đơn hàng
+                    </a>
+                    <a asp-controller="Product" asp-action="Index" class="btn btn-primary rounded-pill px-4 flex-fill">
+                        <i class="fas fa-shopping-bag me-2"></i>Tiếp tục mua sắm
+                    </a>
+                </div>
+
+                <!-- Hotline -->
+                <div class="mt-4 text-center p-3 rounded-3" style="background:#fff5f0;">
+                    <i class="fas fa-headset me-2 text-warning"></i>
+                    <span style="font-size:13px; color:#555;">Cần hỗ trợ? Gọi ngay </span>
+                    <a href="tel:18001234" class="fw-bold text-danger" style="font-size:14px;">1800-1234</a>
+                    <span style="font-size:12px; color:#aaa;"> (Miễn phí)</span>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ════ VIETQR PAYMENT ════ -->
+        <div class="success-card">
+            <div class="qr-header">
+                <div style="position:relative; z-index:1;">
+                    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:rgba(255,255,255,0.6); margin-bottom:8px;">
+                        Thanh Toán Chuyển Khoản
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">Quét Mã Để Hoàn Tất</h3>
+                    <p class="mb-0" style="color:rgba(255,255,255,0.7); font-size:14px;">Đơn hàng <strong>#@orderId</strong></p>
+                    <div class="qr-amount">
+                        <span style="color:rgba(255,255,255,0.7); font-size:13px;">Số tiền cần chuyển: </span>
+                        <span class="text-warning fw-bold fs-4 ms-2">@totalPrice ₫</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="success-body">
+                <!-- QR Code -->
+                <div class="text-center mb-4">
+                    @if (!string.IsNullOrEmpty(bankId) && !string.IsNullOrEmpty(accountNo))
+                    {
+                        var amountClean = totalPrice?.Replace(",", "").Replace(".", "") ?? "0";
+                        <div class="qr-img-wrap">
+                            <img src="https://img.vietqr.io/image/@(bankId)-@(accountNo)-compact2.png?amount=@amountClean&addInfo=Thanh%20toan%20DH%20@orderId&accountName=@accountName"
+                                 alt="VietQR" style="width:220px; height:220px; object-fit:contain;" />
+                        </div>
+                        <div style="font-size:13px; color:#777;">
+                            <i class="fas fa-mobile-alt me-1 text-primary"></i>
+                            Dùng ứng dụng ngân hàng để quét mã
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Thông tin ngân hàng chưa được cấu hình. Vui lòng liên hệ <strong>1800-1234</strong>.
+                        </div>
+                    }
+                </div>
+
+                <!-- Bank info -->
+                <div class="order-info-box mb-4">
+                    <div class="fw-bold mb-3" style="font-size:14px; color:#555;">
+                        <i class="fas fa-university me-2 text-primary"></i>Thông tin chuyển khoản thủ công
+                    </div>
+                    <div class="bank-info-row">
+                        <span class="text-muted">Ngân hàng</span>
+                        <span class="fw-bold">@(bankName ?? "N/A")</span>
+                    </div>
+                    <div class="bank-info-row">
+                        <span class="text-muted">Chủ tài khoản</span>
+                        <span class="fw-bold">@(accountName ?? "N/A")</span>
+                    </div>
+                    <div class="bank-info-row">
+                        <span class="text-muted">Số tài khoản</span>
+                        <span class="fw-bold text-primary fs-5">@(accountNo ?? "N/A")</span>
+                    </div>
+                    <div class="bank-info-row">
+                        <span class="text-muted">Nội dung CK</span>
+                        <span class="fw-bold text-danger">VLXD @orderId</span>
+                    </div>
+                    <div class="bank-info-row">
+                        <span class="text-muted">Số tiền</span>
+                        <span class="fw-bold text-danger fs-5">@totalPrice ₫</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning rounded-3 mb-4" style="font-size:13px;">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Đơn hàng sẽ được xử lý sau khi chúng tôi xác nhận thanh toán
+                    (thường trong vòng <strong>15–30 phút</strong> trong giờ hành chính).
+                </div>
+
+                <a asp-controller="Account" asp-action="Profile" class="btn-paid d-block text-center text-decoration-none mb-3">
+                    <i class="fas fa-check-circle me-2"></i>Tôi Đã Thanh Toán
+                </a>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill w-100">
+                    <i class="fas fa-home me-2"></i>Về trang chủ
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@if (isCOD)
+{
+    @section Scripts {
+    <script>
+        // Confetti effect for COD success
+        const colors = ['#e65c00', '#f9d423', '#198754', '#0dcaf0', '#dc3545', '#6f42c1'];
+        for (let i = 0; i < 60; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'confetti-dot';
+            dot.style.left = Math.random() * 100 + 'vw';
+            dot.style.top = '-20px';
+            dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+            dot.style.animationDelay = Math.random() * 2 + 's';
+            dot.style.width = (Math.random() * 10 + 5) + 'px';
+            dot.style.height = (Math.random() * 10 + 5) + 'px';
+            document.body.appendChild(dot);
+            setTimeout(() => dot.remove(), 4000);
+        }
+    </script>
+    }
+}

@@ -1,0 +1,317 @@
+@{
+    ViewData["Title"] = "Khuyến Mãi";
+}
+
+<style>
+    .promo-hero {
+        background: linear-gradient(135deg, #e65c00 0%, #f9d423 100%);
+        border-radius: 20px;
+        padding: 50px 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 40px;
+    }
+    .promo-hero::before {
+        content: '';
+        position: absolute;
+        top: -50px; right: -50px;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+    }
+    .promo-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -80px; left: -30px;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .countdown-box {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 12px 20px;
+        text-align: center;
+        min-width: 70px;
+    }
+    .countdown-num {
+        font-size: 2rem;
+        font-weight: 800;
+        color: white;
+        line-height: 1;
+    }
+    .countdown-label {
+        font-size: 11px;
+        color: rgba(255,255,255,0.8);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .promo-card {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    .promo-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.18);
+    }
+    .promo-badge {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+        line-height: 1;
+    }
+    .promo-header {
+        padding: 30px 25px 20px;
+        position: relative;
+    }
+    .promo-body {
+        padding: 20px 25px 25px;
+        background: white;
+    }
+    .promo-tag {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        font-size: 12px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-top: 8px;
+    }
+    .terms-box {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px 15px;
+        font-size: 13px;
+        color: #666;
+        margin-top: 12px;
+    }
+</style>
+
+<!-- Hero Banner -->
+<div class="promo-hero">
+    <div style="position:relative; z-index:1;">
+        <div style="font-size:3.5rem; margin-bottom:10px;">🔥</div>
+        <h1 class="fw-bold text-white display-5">Siêu Sale Vật Liệu Xây Dựng</h1>
+        <p class="text-white mb-4" style="opacity:0.9; font-size:1.1rem;">
+            Cơ hội vàng tiết kiệm chi phí – Ưu đãi có thời hạn!
+        </p>
+
+        <!-- Countdown Timer -->
+        <div class="d-flex justify-content-center gap-3 mb-4">
+            <div class="countdown-box">
+                <div class="countdown-num" id="ct-days">00</div>
+                <div class="countdown-label">Ngày</div>
+            </div>
+            <div class="countdown-box">
+                <div class="countdown-num" id="ct-hours">00</div>
+                <div class="countdown-label">Giờ</div>
+            </div>
+            <div class="countdown-box">
+                <div class="countdown-num" id="ct-mins">00</div>
+                <div class="countdown-label">Phút</div>
+            </div>
+            <div class="countdown-box">
+                <div class="countdown-num" id="ct-secs">00</div>
+                <div class="countdown-label">Giây</div>
+            </div>
+        </div>
+
+        <a asp-controller="Product" asp-action="Index" class="btn btn-dark btn-lg fw-bold px-5 rounded-pill">
+            <i class="fas fa-bolt me-2"></i>Xem Tất Cả Sản Phẩm
+        </a>
+    </div>
+</div>
+
+<!-- Promotion Cards -->
+<div class="row g-4 mb-5">
+    <!-- Card 1 -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card">
+            <div class="promo-header" style="background: linear-gradient(135deg, #dc3545, #ff6b6b);">
+                <div class="promo-badge text-white">GIẢM 20%</div>
+                <div class="promo-tag">
+                    <i class="fas fa-toilet me-1"></i>Thiết bị vệ sinh
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Thiết Bị Vệ Sinh INAX, TOTO</h5>
+                <p class="text-muted small mb-3">
+                    Giảm ngay 20% cho toàn bộ thiết bị vệ sinh từ các thương hiệu hàng đầu INAX, TOTO, Viglacera.
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Áp dụng đến 30/06/2026. Không áp dụng cùng CTKM khác.
+                </div>
+                <a asp-controller="Product" asp-action="Index" asp-route-search="thiết bị vệ sinh"
+                   class="btn btn-danger w-100 rounded-pill fw-bold mt-3">
+                    <i class="fas fa-shopping-cart me-2"></i>Mua Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card">
+            <div class="promo-header" style="background: linear-gradient(135deg, #0f3460, #16213e);">
+                <div class="promo-badge text-white">MUA 10 TẶNG 1</div>
+                <div class="promo-tag">
+                    <i class="fas fa-industry me-1"></i>Vật liệu thép
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Thép Hòa Phát D10, D12</h5>
+                <p class="text-muted small mb-3">
+                    Mua từ 10 cuộn thép Hòa Phát D10 hoặc D12 – nhận ngay 1 cuộn tặng kèm miễn phí!
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Áp dụng cho khách sỉ, số lượng có hạn.
+                </div>
+                <a asp-controller="Product" asp-action="Index" asp-route-search="thép hòa phát"
+                   class="btn w-100 rounded-pill fw-bold mt-3" style="background:#0f3460; color:white;">
+                    <i class="fas fa-shopping-cart me-2"></i>Mua Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card">
+            <div class="promo-header" style="background: linear-gradient(135deg, #198754, #20c997);">
+                <div class="promo-badge text-white">FREESHIP</div>
+                <div class="promo-tag">
+                    <i class="fas fa-truck me-1"></i>Vận chuyển
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Miễn Phí Vận Chuyển Nội Thành</h5>
+                <p class="text-muted small mb-3">
+                    Đơn hàng trên 10 triệu đồng được miễn phí vận chuyển nội thành TP.HCM và các tỉnh lân cận.
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Chỉ áp dụng cho đơn hàng ≥ 10.000.000 ₫. Trong vòng 50km.
+                </div>
+                <a asp-controller="Product" asp-action="Index"
+                   class="btn btn-success w-100 rounded-pill fw-bold mt-3">
+                    <i class="fas fa-shopping-cart me-2"></i>Khám Phá Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card">
+            <div class="promo-header" style="background: linear-gradient(135deg, #6f42c1, #8b5cf6);">
+                <div class="promo-badge text-white">GIẢM 15%</div>
+                <div class="promo-tag">
+                    <i class="fas fa-paint-roller me-1"></i>Sơn & chống thấm
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Sơn & Vật Liệu Chống Thấm</h5>
+                <p class="text-muted small mb-3">
+                    Giảm 15% toàn bộ dòng sản phẩm sơn nước, sơn lót và vật liệu chống thấm.
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Áp dụng cho đơn lẻ và đơn sỉ. Liên hệ để báo giá.
+                </div>
+                <a asp-controller="Product" asp-action="Index" asp-route-search="sơn"
+                   class="btn w-100 rounded-pill fw-bold mt-3" style="background:#6f42c1; color:white;">
+                    <i class="fas fa-shopping-cart me-2"></i>Mua Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 5 -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card">
+            <div class="promo-header" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
+                <div class="promo-badge" style="color:#1a1a2e;">TẶNG QUÀ</div>
+                <div class="promo-tag" style="background: rgba(0,0,0,0.15); color:#333;">
+                    <i class="fas fa-gift me-1"></i>Quà tặng kèm
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Gạch Ốp Lát – Tặng Keo Dán</h5>
+                <p class="text-muted small mb-3">
+                    Mua từ 50m² gạch ốp lát bất kỳ – tặng ngay 1 túi keo dán gạch (25kg) trị giá 180.000 ₫.
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Áp dụng tại cửa hàng và đặt online.
+                </div>
+                <a asp-controller="Product" asp-action="Index" asp-route-search="gạch"
+                   class="btn btn-warning w-100 rounded-pill fw-bold mt-3 text-dark">
+                    <i class="fas fa-shopping-cart me-2"></i>Mua Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 6 — Tư vấn -->
+    <div class="col-md-6 col-lg-4">
+        <div class="promo-card" style="border: 2px dashed #e65c00 !important;">
+            <div class="promo-header" style="background: linear-gradient(135deg, #fff5f0, #fff);">
+                <div class="promo-badge" style="color:#e65c00; font-size:2rem;">TƯ VẤN FREE</div>
+                <div class="promo-tag" style="background: rgba(230,92,0,0.15); color:#e65c00;">
+                    <i class="fas fa-headset me-1"></i>Chuyên gia
+                </div>
+            </div>
+            <div class="promo-body">
+                <h5 class="fw-bold mb-2">Tư Vấn Kỹ Thuật Miễn Phí</h5>
+                <p class="text-muted small mb-3">
+                    Đội ngũ kỹ thuật viên sẵn sàng tư vấn lựa chọn vật liệu, tính toán khối lượng xây dựng cho công trình của bạn.
+                </p>
+                <div class="terms-box">
+                    <i class="fas fa-phone me-2 text-warning"></i>
+                    Hotline: <strong>1800-1234</strong> (Miễn phí, 7h-20h hàng ngày)
+                </div>
+                <a asp-controller="Home" asp-action="Contact"
+                   class="btn btn-outline-warning w-100 rounded-pill fw-bold mt-3" style="color:#e65c00; border-color:#e65c00;">
+                    <i class="fas fa-phone me-2"></i>Liên Hệ Ngay
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Countdown to end of month
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+    endDate.setDate(1);
+    endDate.setHours(0, 0, 0, 0);
+
+    function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = endDate - now;
+        if (distance <= 0) return;
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById('ct-days').textContent = String(days).padStart(2, '0');
+        document.getElementById('ct-hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('ct-mins').textContent = String(mins).padStart(2, '0');
+        document.getElementById('ct-secs').textContent = String(secs).padStart(2, '0');
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+</script>
+}

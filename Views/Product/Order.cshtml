@@ -1,0 +1,545 @@
+@model TrieuDoanKy_W2.Models.ViewModels.OrderViewModel
+@{
+    ViewData["Title"] = "Đặt Hàng";
+    var price = Model.Price;
+    var maxQty = Model.Stock > 0 ? Model.Stock : 9999;
+}
+
+<style>
+    /* ─── Layout ─── */
+    .order-page { max-width: 1100px; margin: 0 auto; }
+
+    /* ─── Step header ─── */
+    .checkout-steps {
+        display: flex; align-items: center; gap: 0;
+        margin-bottom: 32px;
+    }
+    .step { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .step-circle {
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .step.active .step-circle { background: linear-gradient(135deg, #e65c00, #f9d423); color: white; }
+    .step.done .step-circle { background: #198754; color: white; }
+    .step.pending .step-circle { background: #e9ecef; color: #aaa; }
+    .step-label { font-weight: 600; font-size: 13px; }
+    .step.active .step-label { color: #e65c00; }
+    .step.pending .step-label { color: #aaa; }
+    .step-line { flex: 1; height: 2px; background: #e9ecef; margin: 0 10px; }
+    .step-line.done { background: #198754; }
+
+    /* ─── Section card ─── */
+    .order-section {
+        background: white; border-radius: 16px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+        overflow: hidden; margin-bottom: 20px;
+    }
+    .order-section-header {
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #1a1a2e, #0f3460);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .order-section-header .section-num {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: rgba(249,212,35,0.2); border: 2px solid #f9d423;
+        display: flex; align-items: center; justify-content: center;
+        color: #f9d423; font-weight: 800; font-size: 12px; flex-shrink: 0;
+    }
+    .order-section-header h6 { color: white; font-weight: 700; margin: 0; font-size: 15px; }
+    .order-section-body { padding: 24px; }
+
+    /* ─── Form fields ─── */
+    .form-label-custom { font-weight: 600; font-size: 13px; color: #555; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .form-label-custom i { color: #e65c00; font-size: 12px; }
+    .form-label-custom .req { color: #dc3545; margin-left: 2px; }
+    .form-control-custom {
+        border: 1.5px solid #e9ecef; border-radius: 10px;
+        padding: 12px 16px; font-size: 14px;
+        transition: all 0.2s; background: #fafafa;
+        width: 100%;
+    }
+    .form-control-custom:focus {
+        border-color: #e65c00; box-shadow: 0 0 0 3px rgba(230,92,0,0.1);
+        background: white; outline: none;
+    }
+    .form-control-custom.is-invalid { border-color: #dc3545; }
+
+    /* ─── Quantity ─── */
+    .qty-group { display: flex; align-items: center; gap: 0; max-width: 160px; }
+    .qty-btn {
+        width: 42px; height: 42px; border: 1.5px solid #e9ecef;
+        background: white; cursor: pointer; font-size: 16px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s; color: #555; flex-shrink: 0;
+    }
+    .qty-btn:hover { background: #e65c00; color: white; border-color: #e65c00; }
+    .qty-btn:first-child { border-radius: 10px 0 0 10px; }
+    .qty-btn:last-child { border-radius: 0 10px 10px 0; }
+    .qty-input {
+        border: 1.5px solid #e9ecef; border-left: none; border-right: none;
+        text-align: center; font-weight: 700; font-size: 16px;
+        width: 70px; height: 42px; background: white; color: #1a1a2e;
+    }
+    .qty-input:focus { outline: none; border-color: #e65c00; }
+
+    /* ─── Payment methods ─── */
+    .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .payment-method-radio { display: none; }
+    .payment-method-label {
+        border: 2px solid #e9ecef; border-radius: 14px;
+        padding: 18px 16px; cursor: pointer; transition: all 0.25s;
+        display: flex; flex-direction: column; align-items: center;
+        gap: 8px; background: white; position: relative;
+    }
+    .payment-method-label:hover { border-color: #e65c00; background: #fffaf7; }
+    .payment-method-radio:checked + .payment-method-label {
+        border-color: #e65c00; background: #fff5f0;
+        box-shadow: 0 4px 16px rgba(230,92,0,0.15);
+    }
+    .payment-method-radio:checked + .payment-method-label .pm-check {
+        opacity: 1; transform: scale(1);
+    }
+    .pm-check {
+        position: absolute; top: 10px; right: 10px;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: #e65c00; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; opacity: 0; transform: scale(0.5);
+        transition: all 0.2s;
+    }
+    .pm-icon {
+        width: 52px; height: 52px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+    }
+    .pm-title { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+    .pm-desc { font-size: 11px; color: #888; text-align: center; }
+
+    /* ─── QR reveal ─── */
+    #qr-preview {
+        border-radius: 14px; background: #f0f7ff;
+        border: 2px dashed #0d6efd; padding: 20px;
+        text-align: center; display: none;
+    }
+    #qr-preview.show { display: block; }
+    #qr-preview img { border-radius: 12px; max-width: 200px; }
+
+    /* ─── Order total ─── */
+    .order-total-bar {
+        background: linear-gradient(135deg, #fff5f0, #fff);
+        border: 2px solid #ffe0cc; border-radius: 14px;
+        padding: 20px 24px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .order-total-label { font-weight: 600; color: #555; font-size: 15px; }
+    .order-total-amount { font-weight: 900; font-size: 1.8rem; color: #e65c00; }
+
+    /* ─── Submit button ─── */
+    .btn-place-order {
+        background: linear-gradient(135deg, #e65c00, #cc4e00);
+        color: white; border: none; border-radius: 14px;
+        padding: 16px 32px; font-size: 17px; font-weight: 800;
+        width: 100%; cursor: pointer; transition: all 0.3s;
+        box-shadow: 0 6px 20px rgba(230,92,0,0.35);
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-place-order:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(230,92,0,0.45); }
+    .btn-place-order:active { transform: translateY(0); }
+
+    /* ─── Summary card ─── */
+    .summary-card { background: white; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); overflow: hidden; position: sticky; top: 20px; }
+    .summary-header { background: linear-gradient(135deg, #e65c00, #cc4e00); padding: 16px 20px; }
+    .summary-header h6 { color: white; font-weight: 700; margin: 0; }
+    .summary-body { padding: 20px; }
+    .summary-img { width: 100%; height: 160px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 0; border-top: 2px solid #e9ecef; margin-top: 4px; }
+    .summary-total .label { font-weight: 700; font-size: 15px; }
+    .summary-total .amount { font-weight: 900; font-size: 1.4rem; color: #e65c00; }
+
+    /* ─── Note textarea ─── */
+    textarea.form-control-custom { resize: vertical; min-height: 80px; }
+
+    /* Responsive */
+    @@media(max-width: 767px) {
+        .payment-methods { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index">Sản phẩm</a></li>
+        @if (Model.ProductId != 0)
+        {
+            <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Display" asp-route-id="@Model.ProductId">@Model.ProductName</a></li>
+        }
+        <li class="breadcrumb-item active">Đặt hàng</li>
+    </ol>
+</nav>
+
+<!-- Steps -->
+<div class="checkout-steps mb-4">
+    <div class="step done">
+        <div class="step-circle"><i class="fas fa-check" style="font-size:12px;"></i></div>
+        <div class="step-label">Giỏ hàng</div>
+    </div>
+    <div class="step-line done"></div>
+    <div class="step active">
+        <div class="step-circle">2</div>
+        <div class="step-label">Thông tin đặt hàng</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step pending">
+        <div class="step-circle">3</div>
+        <div class="step-label">Xác nhận & Thanh toán</div>
+    </div>
+</div>
+
+<div class="order-page">
+    <div class="row g-4">
+        <!-- ════ LEFT: Form ════ -->
+        <div class="col-lg-7">
+            <form method="post" id="order-form" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ProductId" />
+                <input type="hidden" asp-for="ProductName" />
+                <input type="hidden" asp-for="Price" />
+                <input type="hidden" asp-for="ImageUrl" />
+                <input type="hidden" asp-for="Unit" />
+                <input type="hidden" asp-for="Stock" />
+
+                <!-- ── Section 1: Người nhận ── -->
+                <div class="order-section">
+                    <div class="order-section-header">
+                        <div class="section-num">1</div>
+                        <h6><i class="fas fa-user me-2" style="color:#f9d423;"></i>Thông Tin Người Nhận</h6>
+                    </div>
+                    <div class="order-section-body">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-user"></i>Họ và tên người nhận <span class="req">*</span>
+                                </label>
+                                <input asp-for="ReceiverName" class="form-control-custom @(ViewData.ModelState["ReceiverName"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                       placeholder="Nguyễn Văn A" autocomplete="name" />
+                                <span asp-validation-for="ReceiverName" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-phone"></i>Số điện thoại <span class="req">*</span>
+                                </label>
+                                <input asp-for="PhoneNumber" class="form-control-custom @(ViewData.ModelState["PhoneNumber"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                       placeholder="0901 234 567" type="tel" autocomplete="tel" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 2: Địa chỉ giao hàng ── -->
+                <div class="order-section">
+                    <div class="order-section-header">
+                        <div class="section-num">2</div>
+                        <h6><i class="fas fa-map-marker-alt me-2" style="color:#f9d423;"></i>Địa Chỉ Giao Hàng</h6>
+                    </div>
+                    <div class="order-section-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-road"></i>Số nhà, tên đường <span class="req">*</span>
+                                </label>
+                                <input asp-for="AddressLine" class="form-control-custom @(ViewData.ModelState["AddressLine"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                       placeholder="Ví dụ: 180 Nguyễn Hữu Cảnh" autocomplete="street-address" />
+                                <span asp-validation-for="AddressLine" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-map-pin"></i>Phường/Xã <span class="req">*</span>
+                                </label>
+                                <input asp-for="Ward" class="form-control-custom @(ViewData.ModelState["Ward"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                       placeholder="Phường 22" />
+                                <span asp-validation-for="Ward" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-city"></i>Quận/Huyện <span class="req">*</span>
+                                </label>
+                                <input asp-for="District" class="form-control-custom @(ViewData.ModelState["District"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                       placeholder="Quận Bình Thạnh" />
+                                <span asp-validation-for="District" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-flag"></i>Tỉnh/Thành phố <span class="req">*</span>
+                                </label>
+                                <select asp-for="Province" class="form-control-custom @(ViewData.ModelState["Province"]?.Errors.Any() == true ? "is-invalid" : "")">
+                                    <option value="">-- Chọn --</option>
+                                    <option value="TP. Hồ Chí Minh" selected>TP. Hồ Chí Minh</option>
+                                    <option value="Hà Nội">Hà Nội</option>
+                                    <option value="Đà Nẵng">Đà Nẵng</option>
+                                    <option value="Bình Dương">Bình Dương</option>
+                                    <option value="Đồng Nai">Đồng Nai</option>
+                                    <option value="Long An">Long An</option>
+                                    <option value="Tiền Giang">Tiền Giang</option>
+                                    <option value="Cần Thơ">Cần Thơ</option>
+                                    <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                                    <option value="Bình Phước">Bình Phước</option>
+                                    <option value="Tây Ninh">Tây Ninh</option>
+                                    <option value="Hải Phòng">Hải Phòng</option>
+                                    <option value="Khánh Hòa">Khánh Hòa</option>
+                                    <option value="Lâm Đồng">Lâm Đồng</option>
+                                    <option value="Kiên Giang">Kiên Giang</option>
+                                    <option value="An Giang">An Giang</option>
+                                    <option value="Khác">Tỉnh/Thành khác</option>
+                                </select>
+                                <span asp-validation-for="Province" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-custom">
+                                    <i class="fas fa-sticky-note"></i>Ghi chú đơn hàng <span style="color:#aaa; font-weight:400;">(tuỳ chọn)</span>
+                                </label>
+                                <textarea asp-for="OrderNote" class="form-control-custom"
+                                          placeholder="Ví dụ: Giao ngoài giờ hành chính, gọi trước 30 phút, hàng dễ vỡ..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 3: Số lượng ── -->
+                @if (Model.ProductId != 0)
+                {
+                    <div class="order-section">
+                        <div class="order-section-header">
+                            <div class="section-num">3</div>
+                            <h6><i class="fas fa-boxes me-2" style="color:#f9d423;"></i>Số Lượng
+                                @if (!string.IsNullOrEmpty(Model.Unit)) { <span style="color:rgba(255,255,255,0.6); font-size:13px; font-weight:400;">(đơn vị: @Model.Unit)</span> }
+                            </h6>
+                        </div>
+                        <div class="order-section-body">
+                            <div class="d-flex align-items-center gap-4 flex-wrap">
+                                <div class="qty-group">
+                                    <button type="button" class="qty-btn" id="btn-minus">
+                                        <i class="fas fa-minus" style="font-size:12px;"></i>
+                                    </button>
+                                    <input type="number" name="Quantity" id="qty-input" class="qty-input form-control-custom"
+                                           value="@Model.Quantity" min="1" max="@maxQty" />
+                                    <button type="button" class="qty-btn" id="btn-plus">
+                                        <i class="fas fa-plus" style="font-size:12px;"></i>
+                                    </button>
+                                </div>
+                                <div style="font-size:13px; color:#888;">
+                                    <i class="fas fa-warehouse me-1 text-warning"></i>
+                                    Còn <strong>@Model.Stock</strong> @Model.Unit trong kho
+                                </div>
+                            </div>
+                            <span asp-validation-for="Quantity" class="text-danger small mt-2 d-block"></span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <input type="hidden" name="Quantity" id="qty-input" value="1" />
+                }
+
+                <!-- ── Section 4: Phương thức thanh toán ── -->
+                <div class="order-section">
+                    <div class="order-section-header">
+                        <div class="section-num">@(Model.ProductId != 0 ? 4 : 3)</div>
+                        <h6><i class="fas fa-credit-card me-2" style="color:#f9d423;"></i>Phương Thức Thanh Toán</h6>
+                    </div>
+                    <div class="order-section-body">
+                        <div class="payment-methods">
+                            <!-- COD -->
+                            <div>
+                                <input type="radio" name="PaymentMethod" value="COD" id="pm-cod" class="payment-method-radio" checked />
+                                <label for="pm-cod" class="payment-method-label">
+                                    <div class="pm-check"><i class="fas fa-check"></i></div>
+                                    <div class="pm-icon" style="background:#e8f5e9;">
+                                        <i class="fas fa-money-bill-wave" style="color:#198754;"></i>
+                                    </div>
+                                    <div class="pm-title">Tiền mặt (COD)</div>
+                                    <div class="pm-desc">Trả tiền mặt khi nhận hàng<br>Không mất phí</div>
+                                </label>
+                            </div>
+                            <!-- VietQR -->
+                            <div>
+                                <input type="radio" name="PaymentMethod" value="VietQR" id="pm-qr" class="payment-method-radio" />
+                                <label for="pm-qr" class="payment-method-label">
+                                    <div class="pm-check"><i class="fas fa-check"></i></div>
+                                    <div class="pm-icon" style="background:#e3f2fd;">
+                                        <i class="fas fa-qrcode" style="color:#0d6efd;"></i>
+                                    </div>
+                                    <div class="pm-title">Chuyển khoản QR</div>
+                                    <div class="pm-desc">Quét mã VietQR<br>Xác nhận tức thì</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- QR Preview (chỉ hiện khi chọn VietQR) -->
+                        <div id="qr-preview" class="mt-4">
+                            <div style="font-size:13px; color:#0d6efd; font-weight:600; margin-bottom:12px;">
+                                <i class="fas fa-info-circle me-2"></i>Mã QR sẽ hiển thị sau khi đặt hàng
+                            </div>
+                            <div style="background:rgba(13,110,253,0.06); border-radius:10px; padding:12px; font-size:13px; color:#555;">
+                                <i class="fas fa-shield-alt me-2 text-primary"></i>
+                                Thanh toán qua VietQR được bảo mật và xác nhận tự động
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Tổng tiền & Đặt hàng ── -->
+                <div class="order-total-bar mb-4">
+                    <div>
+                        <div class="order-total-label">Tổng tiền thanh toán</div>
+                        <div style="font-size:12px; color:#aaa; margin-top:2px;">Đã bao gồm VAT (nếu có)</div>
+                    </div>
+                    <div class="order-total-amount" id="total-display">
+                        @((price * Model.Quantity).ToString("N0")) ₫
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-place-order" id="btn-order">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Xác Nhận Đặt Hàng</span>
+                </button>
+
+                <p class="text-muted text-center mt-3" style="font-size:12px;">
+                    <i class="fas fa-lock me-1 text-success"></i>
+                    Thông tin của bạn được bảo mật. Bằng cách đặt hàng, bạn đồng ý với
+                    <a href="#" style="color:#e65c00;">điều khoản sử dụng</a> của chúng tôi.
+                </p>
+            </form>
+        </div>
+
+        <!-- ════ RIGHT: Summary ════ -->
+        <div class="col-lg-5">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h6><i class="fas fa-receipt me-2"></i>Tóm Tắt Đơn Hàng</h6>
+                </div>
+                <div class="summary-body">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl" alt="@Model.ProductName" class="summary-img" />
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center justify-content-center summary-img" style="background:#f5f5f5;">
+                            <i class="fas fa-box fa-3x text-muted opacity-25"></i>
+                        </div>
+                    }
+
+                    <div class="fw-bold mb-3 text-truncate" title="@Model.ProductName" style="font-size:15px; color:#1a1a2e;">
+                        @Model.ProductName
+                    </div>
+
+                    <div class="summary-row">
+                        <span class="text-muted">Đơn giá</span>
+                        <span class="text-danger fw-bold">@price.ToString("N0") ₫@(Model.Unit != null ? "/" + Model.Unit : "")</span>
+                    </div>
+                    @if (Model.ProductId != 0)
+                    {
+                        <div class="summary-row">
+                            <span class="text-muted">Số lượng</span>
+                            <span class="fw-semibold" id="qty-summary">×@Model.Quantity</span>
+                        </div>
+                    }
+                    <div class="summary-row">
+                        <span class="text-muted">Phí vận chuyển</span>
+                        <span class="text-success fw-semibold">Miễn phí</span>
+                    </div>
+
+                    <div class="summary-total mt-2">
+                        <span class="label">Tổng cộng</span>
+                        <span class="amount" id="total-summary">@((price * Model.Quantity).ToString("N0")) ₫</span>
+                    </div>
+
+                    <!-- Trust badges -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#666;">
+                                <i class="fas fa-shield-alt text-success"></i>
+                                <span>Bảo hành đổi trả 30 ngày</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#666;">
+                                <i class="fas fa-truck text-primary"></i>
+                                <span>Giao hàng trong 24–48 giờ</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2" style="font-size:12px; color:#666;">
+                                <i class="fas fa-headset text-warning"></i>
+                                <span>Hỗ trợ 24/7: 1800-1234</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const unitPrice = @price;
+    const maxStock = @maxQty;
+
+    function formatVND(n) {
+        return n.toLocaleString('vi-VN') + ' ₫';
+    }
+
+    function updateTotal() {
+        const qtyEl = document.getElementById('qty-input');
+        if (!qtyEl) return;
+        const qty = Math.max(1, parseInt(qtyEl.value) || 1);
+        const total = unitPrice * qty;
+        const td = document.getElementById('total-display');
+        const ts = document.getElementById('total-summary');
+        const qs = document.getElementById('qty-summary');
+        if (td) td.textContent = formatVND(total);
+        if (ts) ts.textContent = formatVND(total);
+        if (qs) qs.textContent = '×' + qty;
+    }
+
+    document.getElementById('btn-minus')?.addEventListener('click', () => {
+        const inp = document.getElementById('qty-input');
+        const v = parseInt(inp.value);
+        if (v > 1) { inp.value = v - 1; updateTotal(); }
+    });
+
+    document.getElementById('btn-plus')?.addEventListener('click', () => {
+        const inp = document.getElementById('qty-input');
+        const v = parseInt(inp.value);
+        if (v < maxStock) { inp.value = v + 1; updateTotal(); }
+        else {
+            inp.classList.add('is-invalid');
+            setTimeout(() => inp.classList.remove('is-invalid'), 1500);
+        }
+    });
+
+    document.getElementById('qty-input')?.addEventListener('input', updateTotal);
+
+    // Payment method toggle + QR preview
+    const qrPreview = document.getElementById('qr-preview');
+    document.querySelectorAll('input[name="PaymentMethod"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'VietQR') {
+                qrPreview?.classList.add('show');
+            } else {
+                qrPreview?.classList.remove('show');
+            }
+        });
+    });
+
+    // Submit loading state
+    document.getElementById('order-form')?.addEventListener('submit', function() {
+        const btn = document.getElementById('btn-order');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Đang xử lý...</span>';
+        }
+    });
+</script>
+}

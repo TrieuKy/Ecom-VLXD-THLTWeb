@@ -1,196 +1,611 @@
-﻿@{
-    ViewData["Title"] = "Trang Chủ";
+@{
+    ViewData["Title"] = "Trang Chủ - VLXD Shop";
 }
 
-<!-- Hero Banner -->
-<div class="hero-banner">
-    <div class="container-fluid px-4">
-        <div class="row align-items-center">
-            <div class="col-md-7">
-                <h1 class="display-4 fw-bold mb-3">
-                    Vật Liệu Xây Dựng<br />
-                    <span style="color:#f9d423;">Chất Lượng - Uy Tín</span>
+<style>
+    /* ===== HERO ===== */
+    .hero-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        min-height: 520px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        margin: -16px -16px 0 -16px;
+    }
+    .hero-section::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: url('/images/hero-bg.jpg') center/cover no-repeat;
+        opacity: 0.12;
+    }
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        top: -100px; right: -100px;
+        width: 500px; height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(230,92,0,0.2) 0%, transparent 70%);
+    }
+    .hero-content { position: relative; z-index: 2; }
+    .hero-badge {
+        display: inline-block;
+        background: rgba(249,212,35,0.15);
+        border: 1px solid rgba(249,212,35,0.4);
+        color: #f9d423;
+        font-size: 13px;
+        padding: 6px 16px;
+        border-radius: 50px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .hero-title {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 900;
+        color: white;
+        line-height: 1.1;
+        margin-bottom: 20px;
+    }
+    .hero-title .highlight { color: #f9d423; }
+    .hero-desc { color: rgba(255,255,255,0.7); font-size: 1.1rem; margin-bottom: 32px; line-height: 1.7; }
+    .hero-btn-primary {
+        background: linear-gradient(135deg, #e65c00, #f9d423);
+        color: white; border: none;
+        padding: 14px 32px; border-radius: 12px;
+        font-weight: 700; font-size: 16px;
+        text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+        transition: all 0.3s; box-shadow: 0 6px 20px rgba(230,92,0,0.4);
+    }
+    .hero-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(230,92,0,0.5); color: white; }
+    .hero-btn-outline {
+        background: rgba(255,255,255,0.1); color: white;
+        border: 2px solid rgba(255,255,255,0.3);
+        padding: 14px 28px; border-radius: 12px;
+        font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        transition: all 0.3s; backdrop-filter: blur(10px);
+    }
+    .hero-btn-outline:hover { background: rgba(255,255,255,0.2); color: white; border-color: white; }
+    .hero-stats { display: flex; gap: 40px; margin-top: 40px; }
+    .hero-stat-num { font-size: 1.8rem; font-weight: 800; color: #f9d423; line-height: 1; }
+    .hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ===== TRUST BAR ===== */
+    .trust-bar {
+        background: white;
+        border-bottom: 3px solid #f0f0f0;
+        padding: 0;
+    }
+    .trust-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 18px 0;
+        border-right: 1px solid #f0f0f0;
+    }
+    .trust-item:last-child { border-right: none; }
+    .trust-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .trust-title { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+    .trust-subtitle { font-size: 12px; color: #888; }
+
+    /* ===== SECTION HEADER ===== */
+    .section-header { margin-bottom: 32px; }
+    .section-badge { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #e65c00; margin-bottom: 8px; }
+    .section-title { font-size: 1.8rem; font-weight: 800; color: #1a1a2e; margin: 0; }
+    .section-title span { color: #e65c00; }
+    .section-line { width: 50px; height: 4px; background: linear-gradient(135deg, #e65c00, #f9d423); border-radius: 2px; margin-top: 12px; }
+
+    /* ===== CATEGORY CARDS ===== */
+    .cat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px 16px;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 2px solid transparent;
+        color: #333;
+        height: 100%;
+    }
+    .cat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        border-color: #e65c00;
+        color: #e65c00;
+    }
+    .cat-icon-wrap {
+        width: 64px; height: 64px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem; margin: 0 auto 12px;
+        transition: transform 0.3s;
+    }
+    .cat-card:hover .cat-icon-wrap { transform: scale(1.1) rotate(-5deg); }
+    .cat-name { font-weight: 700; font-size: 13px; line-height: 1.3; }
+    .cat-count { font-size: 11px; color: #aaa; margin-top: 4px; }
+
+    /* ===== PRODUCT CARDS ===== */
+    .product-card-home {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        transition: all 0.35s ease;
+        height: 100%;
+        display: flex; flex-direction: column;
+        border: none;
+    }
+    .product-card-home:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    }
+    .product-img-wrap {
+        height: 220px;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .product-img-wrap img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .product-card-home:hover .product-img-wrap img { transform: scale(1.08); }
+    .product-img-placeholder {
+        width: 100%; height: 100%;
+        background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .badge-new {
+        position: absolute; top: 12px; left: 12px;
+        background: linear-gradient(135deg, #e65c00, #f9d423);
+        color: white; font-size: 11px; font-weight: 700;
+        padding: 4px 10px; border-radius: 20px;
+    }
+    .badge-hot {
+        position: absolute; top: 12px; left: 12px;
+        background: linear-gradient(135deg, #dc3545, #ff6b6b);
+        color: white; font-size: 11px; font-weight: 700;
+        padding: 4px 10px; border-radius: 20px;
+    }
+    .badge-sold-out {
+        position: absolute; top: 12px; left: 12px;
+        background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+        color: white; font-size: 11px; font-weight: 700;
+        padding: 4px 10px; border-radius: 20px;
+    }
+    .wishlist-btn {
+        position: absolute; top: 12px; right: 12px;
+        width: 34px; height: 34px;
+        background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+        border-radius: 50%; border: none;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.2s; color: #ccc;
+        font-size: 14px;
+    }
+    .wishlist-btn:hover { color: #e65c00; transform: scale(1.1); }
+    .product-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+    .product-cat-tag { font-size: 11px; color: #e65c00; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .product-name-home { font-weight: 700; font-size: 14px; color: #1a1a2e; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px; }
+    .product-price-home { font-size: 1.2rem; font-weight: 800; color: #e65c00; }
+    .product-unit-home { font-size: 12px; color: #aaa; font-weight: 400; }
+    .product-stock { font-size: 12px; margin: 6px 0 12px; }
+    .product-actions { display: flex; gap: 8px; margin-top: auto; }
+    .btn-cart-quick {
+        flex: 1;
+        background: linear-gradient(135deg, #e65c00, #f9d423);
+        color: white; border: none;
+        padding: 10px 8px; border-radius: 10px;
+        font-weight: 700; font-size: 13px;
+        cursor: pointer; transition: opacity 0.2s;
+        text-decoration: none; text-align: center;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-cart-quick:hover { opacity: 0.9; color: white; }
+    .btn-detail-quick {
+        width: 42px; height: 42px;
+        background: #f5f5f5; color: #555;
+        border: none; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        text-decoration: none; transition: all 0.2s; flex-shrink: 0;
+        font-size: 14px;
+    }
+    .btn-detail-quick:hover { background: #1a1a2e; color: white; }
+
+    /* ===== BANNER STRIPS ===== */
+    .promo-strip {
+        border-radius: 20px; overflow: hidden;
+        position: relative; height: 140px;
+        display: flex; align-items: center; padding: 0 30px;
+    }
+    .promo-strip .ps-bg {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%; object-fit: cover; opacity: 0.2;
+    }
+    .promo-strip .ps-content { position: relative; z-index: 1; }
+
+    /* ===== TESTIMONIALS ===== */
+    .testimonial-card {
+        background: white; border-radius: 16px; padding: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .testimonial-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+    .stars { color: #f9d423; font-size: 13px; }
+</style>
+
+<!-- ===== HERO ===== -->
+<div class="hero-section px-4">
+    <div class="container-fluid">
+        <div class="row align-items-center py-5">
+            <div class="col-lg-6 hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-hard-hat me-2"></i>Nhà phân phối VLXD uy tín số 1 TP.HCM
+                </div>
+                <h1 class="hero-title">
+                    Vật Liệu Xây Dựng<br>
+                    <span class="highlight">Chính Hãng – Giá Tốt</span>
                 </h1>
-                <p class="lead mb-4 text-white-50">
-                    Cung cấp đầy đủ vật liệu xây dựng từ các thương hiệu uy tín hàng đầu.
-                    Giao hàng tận nơi, giá cả cạnh tranh, hỗ trợ 24/7.
+                <p class="hero-desc">
+                    Hơn 500 sản phẩm từ các thương hiệu hàng đầu. Giao hàng tận công trình,
+                    tư vấn kỹ thuật miễn phí, đổi trả 30 ngày.
                 </p>
                 <div class="d-flex gap-3 flex-wrap">
-                    <a asp-controller="Product" asp-action="Index" class="btn btn-warning fw-bold px-4 py-2">
-                        <i class="fas fa-boxes me-2"></i>Xem Sản Phẩm
+                    <a asp-controller="Product" asp-action="Index" class="hero-btn-primary">
+                        <i class="fas fa-boxes"></i>Khám Phá Sản Phẩm
                     </a>
-                    <a href="#" class="btn btn-outline-light px-4 py-2">
-                        <i class="fas fa-phone me-2"></i>Tư Vấn Ngay
+                    <a asp-controller="Home" asp-action="Contact" class="hero-btn-outline">
+                        <i class="fas fa-headset"></i>Tư Vấn Miễn Phí
                     </a>
                 </div>
-            </div>
-            <div class="col-md-5 text-center d-none d-md-block">
-                <div style="font-size: 150px; opacity: 0.15; line-height: 1;">
-                    <i class="fas fa-building"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Stats Row -->
-<div class="container-fluid px-4 mb-4">
-    <div class="row g-3">
-        <div class="col-6 col-md-3">
-            <div class="card text-center p-3">
-                <div style="font-size:2rem; color: var(--primary);"><i class="fas fa-boxes"></i></div>
-                <div class="fw-bold fs-4">500+</div>
-                <div class="text-muted small">Sản phẩm</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center p-3">
-                <div style="font-size:2rem; color: #198754;"><i class="fas fa-users"></i></div>
-                <div class="fw-bold fs-4">10,000+</div>
-                <div class="text-muted small">Khách hàng</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center p-3">
-                <div style="font-size:2rem; color: #0dcaf0;"><i class="fas fa-truck"></i></div>
-                <div class="fw-bold fs-4">24h</div>
-                <div class="text-muted small">Giao hàng nhanh</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center p-3">
-                <div style="font-size:2rem; color: #ffc107;"><i class="fas fa-star"></i></div>
-                <div class="fw-bold fs-4">4.9/5</div>
-                <div class="text-muted small">Đánh giá</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Danh mục sản phẩm -->
-<div class="container-fluid px-4 mb-4">
-    <div class="page-header">
-        <h2><i class="fas fa-th-large me-2" style="color:var(--primary);"></i>Danh Mục Sản Phẩm</h2>
-    </div>
-    <div class="row g-3">
-        @{
-            var categories = new[]
-            {
-        new { Icon = "fas fa-bricks", Name = "Xi Măng & Gạch", Count = "120 SP", Color = "#e65c00" },
-        new { Icon = "fas fa-water", Name = "Sơn & Chống Thấm", Count = "85 SP", Color = "#0dcaf0" },
-        new { Icon = "fas fa-cubes", Name = "Thép & Sắt", Count = "60 SP", Color = "#6c757d" },
-        new { Icon = "fas fa-toilet", Name = "Thiết Bị Vệ Sinh", Count = "95 SP", Color = "#198754" },
-        new { Icon = "fas fa-lightbulb", Name = "Điện & Chiếu Sáng", Count = "75 SP", Color = "#ffc107" },
-        new { Icon = "fas fa-door-open", Name = "Cửa & Cổng", Count = "50 SP", Color = "#dc3545" },
-        };
-        }
-        @foreach (var cat in categories)
-        {
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card text-center p-3 h-100" style="cursor:pointer; transition: transform 0.2s;"
-                     onmouseover="this.style.transform='translateY(-5px)'"
-                     onmouseout="this.style.transform='translateY(0)'">
-                    <div style="font-size:2.5rem; color:@cat.Color;" class="mb-2">
-                        <i class="@cat.Icon"></i>
+                <div class="hero-stats">
+                    <div>
+                        <div class="hero-stat-num">500+</div>
+                        <div class="hero-stat-label">Sản phẩm</div>
                     </div>
-                    <div class="fw-semibold small">@cat.Name</div>
-                    <div class="text-muted" style="font-size:11px;">@cat.Count</div>
+                    <div>
+                        <div class="hero-stat-num">10K+</div>
+                        <div class="hero-stat-label">Khách hàng</div>
+                    </div>
+                    <div>
+                        <div class="hero-stat-num">15+</div>
+                        <div class="hero-stat-label">Năm kinh nghiệm</div>
+                    </div>
+                    <div>
+                        <div class="hero-stat-num">4.9★</div>
+                        <div class="hero-stat-label">Đánh giá</div>
+                    </div>
                 </div>
             </div>
-        }
+            <div class="col-lg-6 d-none d-lg-block text-center">
+                <div style="position:relative; display:inline-block;">
+                    <img src="/images/warehouse.jpg" alt="VLXD Shop Kho hàng"
+                         style="width:100%; max-width:500px; border-radius:24px; box-shadow: 0 30px 80px rgba(0,0,0,0.4);" />
+                    <!-- Floating card -->
+                    <div style="position:absolute; bottom:-20px; left:-20px; background:white; border-radius:16px; padding:16px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display:flex; align-items:center; gap:12px; min-width:200px;">
+                        <div style="width:44px;height:44px;background:linear-gradient(135deg,#198754,#20c997);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-truck text-white"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:14px;color:#1a1a2e;">Giao hàng nhanh</div>
+                            <div style="font-size:12px;color:#888;">Trong vòng 24 giờ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Sản phẩm nổi bật -->
-<div class="container-fluid px-4 mb-4">
-    <div class="page-header">
-        <h2><i class="fas fa-fire me-2" style="color:var(--primary);"></i>Sản Phẩm Nổi Bật</h2>
-    </div>
-    <div class="row g-3">
-        @{
-            var featured = new[]
-            {
-        new { Name = "Xi Măng Hà Tiên PCB40", Price = "95,000", Unit = "bao 50kg", Badge = "Bán chạy", BadgeClass = "danger" },
-        new { Name = "Gạch Ốp Lát Đồng Tâm 60x60", Price = "185,000", Unit = "m²", Badge = "Mới", BadgeClass = "primary" },
-        new { Name = "Thép Hòa Phát D10", Price = "12,500", Unit = "kg", Badge = "Giảm giá", BadgeClass = "warning" },
-        new { Name = "Sơn Dulux Nội Thất 5L", Price = "420,000", Unit = "thùng", Badge = "Hot", BadgeClass = "danger" },
-        };
-        }
-        @foreach (var p in featured)
-        {
+<!-- ===== TRUST BAR ===== -->
+<div class="trust-bar mb-4">
+    <div class="container-fluid px-4">
+        <div class="row">
             <div class="col-6 col-md-3">
-                <div class="card h-100" style="transition: box-shadow 0.2s;"
-                     onmouseover="this.style.boxShadow='0 8px 25px rgba(0,0,0,0.15)'"
-                     onmouseout="this.style.boxShadow=''">
-                    <div class="bg-light d-flex align-items-center justify-content-center"
-                         style="height:160px; border-radius: 10px 10px 0 0; position:relative;">
-                        <i class="fas fa-box" style="font-size:4rem; color:#ddd;"></i>
-                        <span class="badge bg-@p.BadgeClass position-absolute top-0 start-0 m-2">@p.Badge</span>
+                <div class="trust-item">
+                    <div class="trust-icon" style="background:#fff5f0;">
+                        <i class="fas fa-certificate" style="color:#e65c00;"></i>
                     </div>
-                    <div class="card-body p-3">
-                        <h6 class="card-title mb-1 fw-semibold" style="font-size:13px;">@p.Name</h6>
-                        <div class="text-danger fw-bold">@p.Price ₫<span class="text-muted fw-normal small">/@p.Unit</span></div>
-                        <a asp-controller="Product" asp-action="Index" class="btn btn-primary btn-sm w-100 mt-2">
-                            <i class="fas fa-shopping-cart me-1"></i>Xem chi tiết
-                        </a>
+                    <div>
+                        <div class="trust-title">Hàng Chính Hãng</div>
+                        <div class="trust-subtitle">100% có xuất xứ</div>
                     </div>
                 </div>
             </div>
+            <div class="col-6 col-md-3">
+                <div class="trust-item">
+                    <div class="trust-icon" style="background:#f0fff4;">
+                        <i class="fas fa-truck" style="color:#198754;"></i>
+                    </div>
+                    <div>
+                        <div class="trust-title">Freeship >10 triệu</div>
+                        <div class="trust-subtitle">Nội thành TP.HCM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="trust-item">
+                    <div class="trust-icon" style="background:#f0f8ff;">
+                        <i class="fas fa-headset" style="color:#0dcaf0;"></i>
+                    </div>
+                    <div>
+                        <div class="trust-title">Hỗ Trợ 24/7</div>
+                        <div class="trust-subtitle">Tư vấn kỹ thuật miễn phí</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="trust-item">
+                    <div class="trust-icon" style="background:#fffdf0;">
+                        <i class="fas fa-undo-alt" style="color:#ffc107;"></i>
+                    </div>
+                    <div>
+                        <div class="trust-title">Đổi Trả 30 Ngày</div>
+                        <div class="trust-subtitle">Không phát sinh phí</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== DANH MỤC ===== -->
+<div class="container-fluid px-4 mb-5">
+    <div class="section-header d-flex justify-content-between align-items-end">
+        <div>
+            <div class="section-badge"><i class="fas fa-th-large me-2"></i>Danh mục</div>
+            <h2 class="section-title">Mua Sắm Theo <span>Danh Mục</span></h2>
+            <div class="section-line"></div>
+        </div>
+    </div>
+    <div class="row g-3">
+        @{
+            var categories = ViewBag.Categories as List<TrieuDoanKy_W2.Models.Category>;
+            var catIcons = new[] { "fas fa-bricks", "fas fa-paint-roller", "fas fa-industry", "fas fa-toilet", "fas fa-lightbulb", "fas fa-door-open" };
+            var catColors = new[] { "#e65c00", "#198754", "#6c757d", "#0dcaf0", "#ffc107", "#dc3545" };
+            var catBgs   = new[] { "#fff5f0", "#f0fff4", "#f5f5f5", "#f0f8ff", "#fffdf0", "#fff0f0" };
+        }
+        @if (categories != null && categories.Any())
+        {
+            for (int i = 0; i < categories.Count; i++)
+            {
+                var cat = categories[i];
+                var icon = catIcons[i % catIcons.Length];
+                var color = catColors[i % catColors.Length];
+                var bg = catBgs[i % catBgs.Length];
+                <div class="col-6 col-md-4 col-lg-2">
+                    <a href="@Url.Action("Index", "Product", new { categoryId = cat.Id })" class="cat-card">
+                        <div class="cat-icon-wrap" style="background:@bg; color:@color;">
+                            <i class="@icon"></i>
+                        </div>
+                        <div class="cat-name">@cat.Name</div>
+                    </a>
+                </div>
+            }
         }
     </div>
-    <div class="text-center mt-3">
-        <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary px-5">
-            <i class="fas fa-arrow-right me-2"></i>Xem tất cả sản phẩm
+</div>
+
+<!-- ===== SẢN PHẨM NỔI BẬT ===== -->
+<div class="container-fluid px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <div class="section-badge"><i class="fas fa-fire me-2"></i>Bán chạy</div>
+            <h2 class="section-title">Sản Phẩm <span>Nổi Bật</span></h2>
+            <div class="section-line"></div>
+        </div>
+        <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4 d-none d-md-inline-flex align-items-center gap-2">
+            Xem tất cả <i class="fas fa-arrow-right"></i>
         </a>
     </div>
+
+    @{
+        var featured = ViewBag.FeaturedProducts as List<TrieuDoanKy_W2.Models.Product>;
+    }
+    @if (featured != null && featured.Any())
+    {
+        <div class="row g-3">
+            @foreach (var p in featured)
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card-home">
+                        <!-- Image -->
+                        <div class="product-img-wrap">
+                            @if (!string.IsNullOrEmpty(p.ImageUrl))
+                            {
+                                <img src="@p.ImageUrl" alt="@p.Name" loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="product-img-placeholder">
+                                    <i class="fas fa-box fa-3x" style="color:#ccc;"></i>
+                                </div>
+                            }
+                            @if (p.Stock == 0)
+                            {
+                                <span class="badge-sold-out"><i class="fas fa-times me-1"></i>Hết hàng</span>
+                            }
+                            else if (p.Stock <= 5)
+                            {
+                                <span class="badge-hot"><i class="fas fa-fire me-1"></i>Sắp hết</span>
+                            }
+                            else
+                            {
+                                <span class="badge-new"><i class="fas fa-star me-1"></i>Nổi bật</span>
+                            }
+                            <button class="wishlist-btn" title="Yêu thích">
+                                <i class="far fa-heart"></i>
+                            </button>
+                        </div>
+                        <!-- Body -->
+                        <div class="product-body">
+                            @if (p.Category != null)
+                            {
+                                <div class="product-cat-tag">@p.Category.Name</div>
+                            }
+                            <div class="product-name-home" title="@p.Name">@p.Name</div>
+                            <div class="product-price-home">
+                                @p.Price.ToString("N0") ₫
+                                <span class="product-unit-home">/@(p.Unit ?? "SP")</span>
+                            </div>
+                            @if (p.Stock > 0)
+                            {
+                                <div class="product-stock text-success">
+                                    <i class="fas fa-check-circle me-1"></i>Còn @p.Stock @p.Unit
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="product-stock text-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Hết hàng
+                                </div>
+                            }
+                            <!-- ACTION BUTTONS -->
+                            <div class="product-actions">
+                                @if (p.Stock > 0)
+                                {
+                                    @if (User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <form asp-controller="Product" asp-action="AddToCart" method="post" class="flex-fill">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="productId" value="@p.Id" />
+                                            <input type="hidden" name="quantity" value="1" />
+                                            <button type="submit" class="btn-cart-quick w-100">
+                                                <i class="fas fa-cart-plus"></i>
+                                                <span class="d-none d-sm-inline">Thêm giỏ</span>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn-cart-quick flex-fill">
+                                            <i class="fas fa-cart-plus"></i>
+                                            <span class="d-none d-sm-inline">Mua ngay</span>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <button class="btn-cart-quick flex-fill" disabled style="opacity:0.5; cursor:default;">
+                                        <i class="fas fa-times"></i>Hết hàng
+                                    </button>
+                                }
+                                <a asp-controller="Product" asp-action="Display" asp-route-id="@p.Id" class="btn-detail-quick" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="text-center mt-4 d-md-none">
+            <a asp-controller="Product" asp-action="Index" class="btn btn-outline-primary rounded-pill px-5">
+                <i class="fas fa-arrow-right me-2"></i>Xem tất cả sản phẩm
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="fas fa-box fa-4x text-muted opacity-25 mb-3 d-block"></i>
+            <p class="text-muted">Chưa có sản phẩm. <a asp-controller="Admin" asp-action="Index">Thêm sản phẩm ngay</a></p>
+        </div>
+    }
 </div>
 
-<!-- Cam kết -->
-<div class="container-fluid px-4 mb-4">
+<!-- ===== PROMO BANNER STRIP ===== -->
+<div class="container-fluid px-4 mb-5">
     <div class="row g-3">
-        <div class="col-md-3">
-            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #fff5f0, #fff);">
+        <div class="col-md-6">
+            <div class="promo-strip" style="background: linear-gradient(135deg, #e65c00, #cc4e00);">
+                <img src="/images/cement.jpg" class="ps-bg" alt="" />
+                <div class="ps-content">
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Ưu Đãi Hôm Nay</div>
+                    <h3 style="color:white; font-weight:800; margin:0 0 12px;">Giảm 20% Xi Măng<br>& Vật Liệu Xây Thô</h3>
+                    <a asp-controller="Product" asp-action="Index" asp-route-search="xi măng"
+                       class="btn btn-warning btn-sm fw-bold rounded-pill px-4">Xem Ngay</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="promo-strip" style="background: linear-gradient(135deg, #0f3460, #16213e);">
+                <img src="/images/steel.jpg" class="ps-bg" alt="" />
+                <div class="ps-content">
+                    <div style="color:rgba(255,255,255,0.8); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Flash Sale</div>
+                    <h3 style="color:white; font-weight:800; margin:0 0 12px;">Thép & Sắt Xây Dựng<br>Giá Sỉ Toàn Quốc</h3>
+                    <a asp-controller="Product" asp-action="Index" asp-route-search="thép"
+                       class="btn btn-warning btn-sm fw-bold rounded-pill px-4">Mua Ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TESTIMONIALS ===== -->
+<div class="container-fluid px-4 mb-5">
+    <div class="section-header text-center mb-4">
+        <div class="section-badge"><i class="fas fa-quote-left me-2"></i>Đánh giá</div>
+        <h2 class="section-title">Khách Hàng <span>Nói Gì?</span></h2>
+        <div class="section-line mx-auto"></div>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="testimonial-card">
+                <div class="stars mb-2">★★★★★</div>
+                <p class="text-muted small mb-3">"Vật liệu chất lượng cao, giao hàng đúng hẹn. Nhân viên tư vấn nhiệt tình và chuyên nghiệp."</p>
                 <div class="d-flex align-items-center gap-3">
-                    <div style="font-size:2rem; color:var(--primary);"><i class="fas fa-certificate"></i></div>
+                    <div style="width:44px;height:44px;background:linear-gradient(135deg,#e65c00,#f9d423);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">N</div>
                     <div>
-                        <div class="fw-bold">Hàng Chính Hãng</div>
-                        <div class="text-muted small">100% xuất xứ rõ ràng</div>
+                        <div class="fw-bold small">Nguyễn Văn An</div>
+                        <div class="text-muted" style="font-size:11px;">Chủ thầu xây dựng – TP.HCM</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #f0fff4, #fff);">
+        <div class="col-md-4">
+            <div class="testimonial-card">
+                <div class="stars mb-2">★★★★★</div>
+                <p class="text-muted small mb-3">"Giá cả cạnh tranh, sản phẩm đa dạng. Mua nhiều lần rồi, không có gì phàn nàn!"</p>
                 <div class="d-flex align-items-center gap-3">
-                    <div style="font-size:2rem; color:#198754;"><i class="fas fa-shipping-fast"></i></div>
+                    <div style="width:44px;height:44px;background:linear-gradient(135deg,#198754,#20c997);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">T</div>
                     <div>
-                        <div class="fw-bold">Giao Hàng Tận Nơi</div>
-                        <div class="text-muted small">Nhanh chóng, an toàn</div>
+                        <div class="fw-bold small">Trần Thị Bích</div>
+                        <div class="text-muted" style="font-size:11px;">Kiến trúc sư – Bình Dương</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #f0f8ff, #fff);">
+        <div class="col-md-4">
+            <div class="testimonial-card">
+                <div class="stars mb-2">★★★★☆</div>
+                <p class="text-muted small mb-3">"Đặt hàng online dễ dàng, thanh toán QR tiện lợi. Sẽ quay lại mua thêm cho công trình tiếp theo."</p>
                 <div class="d-flex align-items-center gap-3">
-                    <div style="font-size:2rem; color:#0dcaf0;"><i class="fas fa-headset"></i></div>
+                    <div style="width:44px;height:44px;background:linear-gradient(135deg,#0dcaf0,#0d6efd);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">L</div>
                     <div>
-                        <div class="fw-bold">Hỗ Trợ 24/7</div>
-                        <div class="text-muted small">Tư vấn miễn phí</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card p-3 border-0" style="background: linear-gradient(135deg, #fffdf0, #fff);">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="font-size:2rem; color:#ffc107;"><i class="fas fa-undo-alt"></i></div>
-                    <div>
-                        <div class="fw-bold">Đổi Trả 30 Ngày</div>
-                        <div class="text-muted small">Không phát sinh phí</div>
+                        <div class="fw-bold small">Lê Minh Tuấn</div>
+                        <div class="text-muted" style="font-size:11px;">Kỹ sư xây dựng – Đồng Nai</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+// Wishlist heart toggle
+document.querySelectorAll('.wishlist-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const icon = this.querySelector('i');
+        if (icon.classList.contains('far')) {
+            icon.classList.replace('far', 'fas');
+            this.style.color = '#e65c00';
+        } else {
+            icon.classList.replace('fas', 'far');
+            this.style.color = '';
+        }
+    });
+});
+</script>
+}

@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"] = "Liên Hệ";
+}
+
+<div class="page-header mb-4">
+    <h2><i class="fas fa-headset me-2 text-primary"></i>Liên Hệ Với Chúng Tôi</h2>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-4">Thông tin liên hệ</h4>
+                <div class="d-flex mb-4">
+                    <div class="bg-light text-primary d-flex align-items-center justify-content-center rounded-circle" style="width:50px;height:50px;flex-shrink:0;">
+                        <i class="fas fa-map-marker-alt fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="fw-bold mb-1">Địa chỉ trụ sở</h6>
+                        <p class="text-muted mb-0">123 Đường Xây Dựng, Phường 1, Quận 1, TP. Hồ Chí Minh</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-4">
+                    <div class="bg-light text-primary d-flex align-items-center justify-content-center rounded-circle" style="width:50px;height:50px;flex-shrink:0;">
+                        <i class="fas fa-phone-alt fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="fw-bold mb-1">Điện thoại</h6>
+                        <p class="text-muted mb-0">1800-1234 (Miễn phí cước gọi)</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-4">
+                    <div class="bg-light text-primary d-flex align-items-center justify-content-center rounded-circle" style="width:50px;height:50px;flex-shrink:0;">
+                        <i class="fas fa-envelope fs-4"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="fw-bold mb-1">Email hỗ trợ</h6>
+                        <p class="text-muted mb-0">info@vlxdshop.vn</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm" style="border-radius:16px;">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-4">Gửi tin nhắn cho chúng tôi</h4>
+                <form onsubmit="event.preventDefault(); alert('Cảm ơn bạn! Chúng tôi đã nhận được tin nhắn và sẽ phản hồi sớm nhất.'); this.reset();">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ và tên</label>
+                            <input type="text" class="form-control" required placeholder="Nguyễn Văn A">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" required placeholder="email@example.com">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Tiêu đề</label>
+                            <input type="text" class="form-control" required placeholder="Tôi cần tư vấn về...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Nội dung</label>
+                            <textarea class="form-control" rows="4" required placeholder="Nhập nội dung tin nhắn..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary px-4 py-2 fw-bold rounded-pill">
+                                <i class="fas fa-paper-plane me-2"></i>Gửi Tin Nhắn
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

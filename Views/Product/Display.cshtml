@@ -1,121 +1,331 @@
-﻿@model TrieuDoanKy_W2.Models.Product
+@model TrieuDoanKy_W2.Models.Product
+@using System.Text.Json
 @{
-    ViewData["Title"] = "Chi Tiết Sản Phẩm";
+    ViewData["Title"] = Model.Name;
+    var related = ViewBag.RelatedProducts as List<TrieuDoanKy_W2.Models.Product> ?? new();
+    // Parse ImageUrls JSON string safely
+    List<string> extraImages = new();
+    if (!string.IsNullOrWhiteSpace(Model.ImageUrls))
+    {
+        try { extraImages = JsonSerializer.Deserialize<List<string>>(Model.ImageUrls) ?? new(); }
+        catch { extraImages = new(); }
+    }
+    if (Model.ProductImages != null && Model.ProductImages.Any())
+    {
+        foreach (var pi in Model.ProductImages.OrderBy(p => p.SortOrder ?? 0))
+        {
+            if (!string.IsNullOrWhiteSpace(pi.ImageUrl) && !extraImages.Contains(pi.ImageUrl))
+            {
+                extraImages.Add(pi.ImageUrl);
+            }
+        }
+    }
+    var showThumbs = !string.IsNullOrEmpty(Model.ImageUrl) || extraImages.Any();
 }
-
-<!-- Page Header -->
-<div class="page-header">
-    <h2><i class="fas fa-info-circle me-2" style="color:var(--primary);"></i>Chi Tiết Sản Phẩm</h2>
-</div>
 
 <!-- Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
         <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index">Sản phẩm</a></li>
-        <li class="breadcrumb-item active">Chi tiết</li>
+        @if (Model.Category != null)
+        {
+            <li class="breadcrumb-item">
+                <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@Model.CategoryId">@Model.Category.Name</a>
+            </li>
+        }
+        <li class="breadcrumb-item active text-truncate" style="max-width:200px;">@Model.Name</li>
     </ol>
 </nav>
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<style>
+    .product-detail-img {
+        border-radius: 16px;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+    .product-detail-img img {
+        width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        padding: 20px;
+    }
+    .thumb-img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+    }
+    .thumb-img:hover, .thumb-img.active { border-color: var(--primary); }
+    .qty-control { max-width: 130px; }
+    .qty-control input { text-align: center; font-weight: 700; font-size: 16px; }
+    .product-price-big { font-size: 2rem; font-weight: 800; color: #e65c00; }
+    .product-unit-text { font-size: 14px; color: #888; font-weight: 400; }
+    .info-row { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .info-label { color: #888; font-size: 14px; min-width: 120px; }
+    .stock-badge-ok { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .stock-badge-low { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .stock-badge-out { background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .btn-buy { background: linear-gradient(135deg, #e65c00, #f9d423); border: none; color: white; font-weight: 700; padding: 12px 28px; border-radius: 10px; font-size: 16px; transition: opacity 0.2s; }
+    .btn-buy:hover { opacity: 0.9; color: white; }
+    .btn-add-cart { border: 2px solid #e65c00; color: #e65c00; font-weight: 700; padding: 12px 28px; border-radius: 10px; font-size: 16px; background: transparent; transition: all 0.2s; }
+    .btn-add-cart:hover { background: rgba(230,92,0,0.08); color: #e65c00; }
+    .related-card { border-radius: 12px; overflow: hidden; transition: all 0.25s; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .related-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+</style>
+
 <div class="row g-4">
-    <!-- Product Image -->
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body p-3 text-center">
+    <!-- Product Images -->
+    <div class="col-md-5">
+        <div class="card border-0 product-detail-img shadow-sm">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" alt="@Model.Name" id="main-product-img" />
+            }
+            else
+            {
+                <div class="d-flex align-items-center justify-content-center" style="height:350px;">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-image fa-5x mb-3 opacity-25"></i>
+                        <div>Chưa có ảnh sản phẩm</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (showThumbs && (extraImages.Any()))
+        {
+            <div class="d-flex gap-2 mt-2 flex-wrap">
                 @if (!string.IsNullOrEmpty(Model.ImageUrl))
                 {
-                    <img src="@Model.ImageUrl" alt="@Model.Name"
-                         class="img-fluid rounded" style="max-height:300px; object-fit:contain;" />
+                    <img src="@Model.ImageUrl" class="thumb-img active" onclick="setMainImg(this, '@Model.ImageUrl')" alt="Ảnh chính" />
                 }
-                else
+                @foreach (var imgUrl in extraImages)
                 {
-                    <div class="bg-light d-flex align-items-center justify-content-center rounded"
-                         style="height:250px;">
-                        <div class="text-center text-muted">
-                            <i class="fas fa-image fa-4x mb-2"></i>
-                            <div>Chưa có ảnh</div>
-                        </div>
-                    </div>
-                }
-
-                @if (Model.ImageUrls != null && Model.ImageUrls.Any())
-                {
-                    <hr />
-                    <div class="row g-2 mt-1">
-                        @foreach (var imgUrl in Model.ImageUrls)
-                        {
-                            <div class="col-4">
-                                <img src="@imgUrl" alt="Ảnh phụ"
-                                     class="img-thumbnail" style="height:70px; object-fit:cover;" />
-                            </div>
-                        }
-                    </div>
+                    if (!string.IsNullOrWhiteSpace(imgUrl))
+                    {
+                        <img src="@imgUrl" class="thumb-img" onclick="setMainImg(this, '@imgUrl')" alt="Ảnh phụ" />
+                    }
                 }
             </div>
-        </div>
+        }
     </div>
 
     <!-- Product Info -->
-    <div class="col-md-8">
-        <div class="card h-100">
-            <div class="card-header py-3" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
-                <h5 class="mb-0 text-white"><i class="fas fa-box me-2"></i>Thông Tin Sản Phẩm</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tbody>
-                        <tr>
-                            <td style="width:140px;" class="text-muted fw-semibold">
-                                <i class="fas fa-hashtag me-2"></i>Mã SP
-                            </td>
-                            <td>
-                                <span class="badge bg-secondary">#@Model.Id</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted fw-semibold">
-                                <i class="fas fa-tag me-2"></i>Tên SP
-                            </td>
-                            <td class="fw-bold fs-5">@Model.Name</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted fw-semibold">
-                                <i class="fas fa-dollar-sign me-2"></i>Giá bán
-                            </td>
-                            <td>
-                                <span class="text-danger fw-bold fs-4">@Model.Price.ToString("N0") ₫</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted fw-semibold">
-                                <i class="fas fa-list me-2"></i>Danh mục
-                            </td>
-                            <td>
-                                <span class="badge-category">Danh mục #@Model.CategoryId</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted fw-semibold">
-                                <i class="fas fa-align-left me-2"></i>Mô tả
-                            </td>
-                            <td>@(string.IsNullOrEmpty(Model.Description) ? "Chưa có mô tả" : Model.Description)</td>
-                        </tr>
-                    </tbody>
-                </table>
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+            <div class="card-body p-4">
+                <!-- Category badge -->
+                @if (Model.Category != null)
+                {
+                    <div class="mb-2">
+                        <a asp-controller="Product" asp-action="Index" asp-route-categoryId="@Model.CategoryId"
+                           class="badge-category text-decoration-none">
+                            <i class="fas fa-tag me-1"></i>@Model.Category.Name
+                        </a>
+                    </div>
+                }
+
+                <!-- Product name -->
+                <h1 class="fw-bold mb-3" style="font-size:1.5rem; color:#1a1a2e;">@Model.Name</h1>
+
+                <!-- Price -->
+                <div class="mb-3">
+                    <span class="product-price-big">@Model.Price.ToString("N0") ₫</span>
+                    @if (!string.IsNullOrEmpty(Model.Unit))
+                    {
+                        <span class="product-unit-text">/@Model.Unit</span>
+                    }
+                </div>
+
+                <!-- Stock status -->
+                <div class="mb-3">
+                    @if (Model.Stock == 0)
+                    {
+                        <span class="stock-badge-out"><i class="fas fa-times-circle me-1"></i>Hết hàng</span>
+                    }
+                    else if (Model.Stock <= 5)
+                    {
+                        <span class="stock-badge-low"><i class="fas fa-exclamation-triangle me-1"></i>Sắp hết – Còn @Model.Stock @Model.Unit</span>
+                    }
+                    else
+                    {
+                        <span class="stock-badge-ok"><i class="fas fa-check-circle me-1"></i>Còn hàng (@Model.Stock @Model.Unit)</span>
+                    }
+                </div>
 
                 <hr />
-                <div class="d-flex gap-2 flex-wrap">
-                    <a asp-action="Update" asp-route-id="@Model.Id" class="btn btn-warning">
-                        <i class="fas fa-edit me-2"></i>Chỉnh Sửa
-                    </a>
-                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Xóa
-                    </a>
-                    <a asp-action="Index" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Quay Lại
-                    </a>
+
+                <!-- Description -->
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div class="mb-4">
+                        <div class="info-label fw-semibold mb-2"><i class="fas fa-align-left me-2 text-warning"></i>Mô tả</div>
+                        <p class="text-muted" style="line-height:1.7;">@Model.Description</p>
+                    </div>
+                }
+
+                <!-- Info table -->
+                <div class="mb-4">
+                    <div class="info-row d-flex align-items-center">
+                        <span class="info-label"><i class="fas fa-hashtag me-2 text-warning"></i>Mã SP</span>
+                        <span class="badge bg-secondary">#@Model.Id</span>
+                    </div>
+                    @if (Model.Category != null)
+                    {
+                        <div class="info-row d-flex align-items-center">
+                            <span class="info-label"><i class="fas fa-list me-2 text-warning"></i>Danh mục</span>
+                            <span>@Model.Category.Name</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Unit))
+                    {
+                        <div class="info-row d-flex align-items-center">
+                            <span class="info-label"><i class="fas fa-ruler me-2 text-warning"></i>Đơn vị</span>
+                            <span>@Model.Unit</span>
+                        </div>
+                    }
                 </div>
+
+                <!-- Actions -->
+                @if (Model.Stock > 0)
+                {
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <!-- Quantity + Add to Cart -->
+                        <form asp-action="AddToCart" asp-controller="Product" method="post" class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productId" value="@Model.Id" />
+                            <div class="input-group qty-control">
+                                <button type="button" class="btn btn-outline-secondary" id="disp-btn-minus">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" name="quantity" id="disp-qty" class="form-control" 
+                                       value="1" min="1" max="@Model.Stock" />
+                                <button type="button" class="btn btn-outline-secondary" id="disp-btn-plus">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="btn-add-cart">
+                                <i class="fas fa-cart-plus me-2"></i>Thêm Vào Giỏ
+                            </button>
+                        </form>
+
+                        <a asp-action="Order" asp-route-id="@Model.Id" class="btn-buy d-inline-block text-center text-decoration-none mb-2" style="min-width:200px;">
+                            <i class="fas fa-shopping-bag me-2"></i>Đặt Hàng Ngay
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn-buy d-inline-block text-center text-decoration-none" style="min-width:240px;">
+                            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập để mua hàng
+                        </a>
+                    }
+                }
+                else
+                {
+                    <button class="btn btn-secondary btn-lg" disabled>
+                        <i class="fas fa-times-circle me-2"></i>Sản phẩm tạm hết hàng
+                    </button>
+                }
+
+                <!-- Admin actions -->
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="mt-3 pt-3 border-top d-flex gap-2">
+                        <a asp-action="Update" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit me-1"></i>Chỉnh Sửa
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i>Xóa
+                        </a>
+                    </div>
+                }
+
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm mt-3">
+                    <i class="fas fa-arrow-left me-2"></i>Tiếp tục mua sắm
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Related Products -->
+@if (related.Any())
+{
+    <div class="mt-5">
+        <div class="page-header">
+            <h2><i class="fas fa-boxes me-2" style="color:var(--primary);"></i>Sản Phẩm Cùng Danh Mục</h2>
+        </div>
+        <div class="row g-3">
+            @foreach (var rp in related)
+            {
+                <div class="col-6 col-md-3">
+                    <div class="related-card card h-100">
+                        <div style="height:140px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(rp.ImageUrl))
+                            {
+                                <img src="@rp.ImageUrl" alt="@rp.Name" class="w-100 h-100" style="object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                                    <i class="fas fa-box fa-3x text-muted opacity-25"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="fw-semibold small text-truncate mb-1" title="@rp.Name">@rp.Name</div>
+                            <div class="text-danger fw-bold mb-2">@rp.Price.ToString("N0") ₫</div>
+                            <a asp-action="Display" asp-route-id="@rp.Id" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-eye me-1"></i>Xem
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    function setMainImg(el, src) {
+        document.getElementById('main-product-img').src = src;
+        document.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    const maxStock = @Model.Stock;
+    const qtyInput = document.getElementById('disp-qty');
+
+    document.getElementById('disp-btn-minus')?.addEventListener('click', () => {
+        let v = parseInt(qtyInput.value);
+        if (v > 1) qtyInput.value = v - 1;
+    });
+
+    document.getElementById('disp-btn-plus')?.addEventListener('click', () => {
+        let v = parseInt(qtyInput.value);
+        if (v < maxStock) qtyInput.value = v + 1;
+        else alert('Số lượng không vượt quá tồn kho (' + maxStock + ')');
+    });
+</script>
+}
