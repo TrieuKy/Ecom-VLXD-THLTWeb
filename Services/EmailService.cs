@@ -8,6 +8,8 @@ namespace TrieuDoanKy_W2.Services
     {
         Task SendOrderConfirmationAsync(string toEmail, string toName, int orderId,
             string productName, int quantity, decimal totalPrice, string shippingAddress);
+
+        Task SendPasswordResetAsync(string toEmail, string toName, string resetLink);
     }
 
     public class EmailService : IEmailService
@@ -52,6 +54,58 @@ namespace TrieuDoanKy_W2.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi gửi email xác nhận đơn hàng #{OrderId}", orderId);
+            }
+        }
+
+        public async Task SendPasswordResetAsync(string toEmail, string toName, string resetLink)
+        {
+            try
+            {
+                var smtpHost = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
+                var smtpPort = int.Parse(_config["Email:SmtpPort"] ?? "587");
+                var senderEmail = _config["Email:SenderEmail"] ?? "";
+                var senderName = _config["Email:SenderName"] ?? "VLXD Store";
+                var password = _config["Email:Password"] ?? "";
+
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(senderName, senderEmail));
+                message.To.Add(new MailboxAddress(toName, toEmail));
+                message.Subject = "🔐 Đặt lại mật khẩu - VLXD Shop";
+
+                var html = $"""
+                <!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"></head>
+                <body style="font-family:'Segoe UI',sans-serif;background:#f5f6fa;margin:0;padding:20px;">
+                  <div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
+                    <div style="background:linear-gradient(135deg,#e65c00,#cc4e00);padding:30px;text-align:center">
+                      <h1 style="color:white;margin:0">🔐 Đặt lại mật khẩu</h1>
+                    </div>
+                    <div style="padding:30px">
+                      <p>Xin chào <strong>{toName}</strong>,</p>
+                      <p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tiếp tục:</p>
+                      <div style="text-align:center;margin:30px 0">
+                        <a href="{resetLink}" style="background:#e65c00;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px">Đặt lại mật khẩu</a>
+                      </div>
+                      <p style="color:#666;font-size:13px">Link có hiệu lực trong <strong>2 giờ</strong>. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+                    </div>
+                    <div style="background:#1a1a2e;padding:15px;text-align:center">
+                      <p style="color:#aaa;margin:0;font-size:13px">© 2026 VLXD Shop</p>
+                    </div>
+                  </div>
+                </body></html>
+                """;
+
+                var bodyBuilder = new BodyBuilder { HtmlBody = html };
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using var client = new SmtpClient();
+                await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(senderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi gửi email đặt lại mật khẩu cho {Email}", toEmail);
             }
         }
 

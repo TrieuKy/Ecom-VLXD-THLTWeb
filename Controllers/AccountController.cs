@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +6,7 @@ using System.Security.Claims;
 using TrieuDoanKy_W2.Data;
 using TrieuDoanKy_W2.Models;
 using TrieuDoanKy_W2.Models.ViewModels;
+using TrieuDoanKy_W2.Services;
 
 namespace TrieuDoanKy_W2.Controllers
 {
@@ -14,14 +15,17 @@ namespace TrieuDoanKy_W2.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
 
         public AccountController(UserManager<ApplicationUser> userManager,
                                  SignInManager<ApplicationUser> signInManager,
-                                 ApplicationDbContext context)
+                                 ApplicationDbContext context,
+                                 IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _context = context;
+            _emailService = emailService;
         }
 
         // ────── ĐĂNG NHẬP ──────
@@ -30,7 +34,6 @@ namespace TrieuDoanKy_W2.Controllers
         {
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToAction("Index", "Home");
-
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
@@ -127,14 +130,12 @@ namespace TrieuDoanKy_W2.Controllers
             if (info == null)
                 return RedirectToAction(nameof(Login));
 
-            // Thử đăng nhập bằng external login đã liên kết
             var result = await _signInManager.ExternalLoginSignInAsync(
                 info.LoginProvider, info.ProviderKey, isPersistent: false);
 
             if (result.Succeeded)
                 return LocalRedirect(returnUrl ?? "/");
 
-            // Nếu chưa có tài khoản → tạo mới
             var email = info.Principal.FindFirstValue(ClaimTypes.Email);
             var fullName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email ?? "Người dùng";
 
@@ -144,18 +145,15 @@ namespace TrieuDoanKy_W2.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            // Kiểm tra email đã tồn tại
             var existingUser = await _userManager.FindByEmailAsync(email);
             if (existingUser != null)
             {
-                // Liên kết external login vào tài khoản hiện có
                 await _userManager.AddLoginAsync(existingUser, info);
                 await _signInManager.SignInAsync(existingUser, isPersistent: false);
                 return LocalRedirect(returnUrl ?? "/");
             }
 
-            // Tạo tài khoản mới
-            var user = new ApplicationUser
+            var newUser = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
@@ -163,11 +161,11 @@ namespace TrieuDoanKy_W2.Controllers
                 EmailConfirmed = true
             };
 
-            var createResult = await _userManager.CreateAsync(user);
+            var createResult = await _userManager.CreateAsync(newUser);
             if (createResult.Succeeded)
             {
-                await _userManager.AddLoginAsync(user, info);
-                await _signInManager.SignInAsync(user, isPersistent: false);
+                await _userManager.AddLoginAsync(newUser, info);
+                await _signInManager.SignInAsync(newUser, isPersistent: false);
                 TempData["Success"] = $"Chào mừng {fullName}!";
                 return LocalRedirect(returnUrl ?? "/");
             }
@@ -178,12 +176,12 @@ namespace TrieuDoanKy_W2.Controllers
 
         // ────── THÔNG TIN TÀI KHOẢN ──────
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> Profile()
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToAction(nameof(Login));
 
-            // Fetch order history
             var orders = await _context.Orders
                 .Where(o => o.UserId == user.Id)
                 .Include(o => o.OrderDetails!)
@@ -197,6 +195,7 @@ namespace TrieuDoanKy_W2.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> Profile(ApplicationUser model)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -207,16 +206,121 @@ namespace TrieuDoanKy_W2.Controllers
             user.Address = model.Address;
 
             var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded)
-            {
-                TempData["Success"] = "Cập nhật thông tin thành công!";
-            }
-            else
-            {
-                TempData["Error"] = "Có lỗi xảy ra khi cập nhật thông tin.";
-            }
+            TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
+                ? "Cập nhật thông tin thành công!"
+                : "Có lỗi xảy ra khi cập nhật thông tin.";
 
             return RedirectToAction(nameof(Profile));
+        }
+
+        // ────── CHI TIẾT ĐƠN HÀNG ──────
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> OrderDetail(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction(nameof(Login));
+
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails!)
+                .ThenInclude(od => od.Product)
+                .FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+
+            if (order == null) return NotFound();
+            return View(order);
+        }
+
+        // ────── HỦY ĐƠN HÀNG ──────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> CancelOrder(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction(nameof(Login));
+
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails!)
+                .ThenInclude(od => od.Product)
+                .FirstOrDefaultAsync(o => o.Id == id && o.UserId == user.Id);
+
+            if (order == null) return NotFound();
+
+            if (order.Status != "Chờ xác nhận")
+            {
+                TempData["Error"] = "Chỉ có thể hủy đơn hàng ở trạng thái \"Chờ xác nhận\".";
+                return RedirectToAction(nameof(OrderDetail), new { id });
+            }
+
+            // Hoàn kho
+            foreach (var detail in order.OrderDetails ?? new())
+            {
+                if (detail.Product != null)
+                    detail.Product.Stock += detail.Quantity;
+            }
+
+            order.Status = "Đã hủy";
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"Đã hủy đơn hàng #{id} thành công.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // ────── QUÊN MẬT KHẨU ──────
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Home");
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null)
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetLink = Url.Action(nameof(ResetPassword), "Account",
+                    new { email = model.Email, token }, Request.Scheme)!;
+                await _emailService.SendPasswordResetAsync(user.Email!, user.FullName ?? user.Email!, resetLink);
+            }
+
+            TempData["Success"] = "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(string email, string token)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+                return RedirectToAction(nameof(Login));
+
+            return View(new ResetPasswordViewModel { Email = email, Token = token });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null)
+            {
+                var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError("", error.Description);
+                    return View(model);
+                }
+            }
+
+            TempData["Success"] = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập.";
+            return RedirectToAction(nameof(Login));
         }
     }
 }

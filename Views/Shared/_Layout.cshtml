@@ -275,35 +275,32 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-2">
-                    <!-- Search Form -->
-                    <form asp-controller="Product" asp-action="Index" method="get" class="d-flex me-2">
-                        <div class="input-group input-group-sm">
-                            <input type="text" name="search" class="form-control border-0" placeholder="Tìm sản phẩm..." style="width:150px;">
-                            <button type="submit" class="btn btn-light"><i class="fas fa-search text-primary"></i></button>
-                        </div>
-                    </form>
-                    @if (User.Identity?.IsAuthenticated == true)
+                    <!-- Search Form with Autocomplete -->
+                    <div class="position-relative me-2" id="search-wrapper">
+                        <form asp-controller="Product" asp-action="Index" method="get" class="d-flex">
+                            <div class="input-group input-group-sm">
+                                <input type="text" name="search" id="search-input" class="form-control border-0" placeholder="Tìm sản phẩm..." autocomplete="off" style="width:200px;">
+                                <button type="submit" class="btn btn-light"><i class="fas fa-search text-primary"></i></button>
+                            </div>
+                        </form>
+                        <div id="search-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:1000;overflow:hidden;min-width:300px;"></div>
+                    </div>
+                    @{
+                        var isAuth = User.Identity?.IsAuthenticated == true;
+                        var cartCount = isAuth ? (int)(ViewData["CartCount"] ?? 0) : 0;
+                    }
+                    @if (isAuth)
                     {
                         <!-- Cart with badge -->
                         <a asp-controller="Product" asp-action="Cart" class="btn btn-outline-light btn-sm position-relative" id="cart-btn-nav">
                             <i class="fas fa-shopping-cart"></i>
-                            @{
-                                var cartCount = 0;
-                                if (User.Identity?.IsAuthenticated == true)
-                                {
-                                    try {
-                                        var userId = ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                                        if (userId != null)
-                                        {
-                                            var db = ViewContext.HttpContext.RequestServices.GetService(typeof(TrieuDoanKy_W2.Data.ApplicationDbContext)) as TrieuDoanKy_W2.Data.ApplicationDbContext;
-                                            cartCount = db?.ShoppingCartItems.Where(i => i.ApplicationUserId == userId).Sum(i => i.Quantity) ?? 0;
-                                        }
-                                    } catch { }
-                                }
-                            }
                             @if (cartCount > 0)
                             {
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size:10px;">@cartCount</span>
+                                <span id="cart-badge-nav" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size:10px;">@cartCount</span>
+                            }
+                            else
+                            {
+                                <span id="cart-badge-nav" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="font-size:10px;display:none;">0</span>
                             }
                         </a>
                         <!-- User dropdown -->
@@ -539,6 +536,124 @@
         }
         document.getElementById('chat-send-btn').disabled = false;
         document.getElementById('chat-input').focus();
+    }
+
+    // ── Search Autocomplete ──
+    (function() {
+        const inp = document.getElementById('search-input');
+        const drop = document.getElementById('search-dropdown');
+        if (!inp || !drop) return;
+
+        let debounceTimer;
+
+        inp.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const q = this.value.trim();
+            if (q.length < 2) { drop.style.display = 'none'; return; }
+            debounceTimer = setTimeout(() => fetchSuggestions(q), 250);
+        });
+
+        inp.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { drop.style.display = 'none'; }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('search-wrapper')?.contains(e.target)) {
+                drop.style.display = 'none';
+            }
+        });
+
+        async function fetchSuggestions(q) {
+            try {
+                const res = await fetch('/Product/SearchSuggestions?q=' + encodeURIComponent(q));
+                const items = await res.json();
+                if (!items.length) { drop.style.display = 'none'; return; }
+                drop.innerHTML = items.map(p => `
+                    <a href="/Product/Display/${p.id}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:#222;border-bottom:1px solid #f0f0f0;transition:background 0.15s;">
+                        <img src="${p.imageUrl || '/images/placeholder.png'}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.src='/images/placeholder.png'">
+                        <div style="flex:1;overflow:hidden;">
+                            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(p.name)}</div>
+                            <div style="font-size:12px;color:#e65c00;font-weight:700;">${p.price}₫</div>
+                        </div>
+                    </a>`).join('');
+                // hover effect
+                drop.querySelectorAll('a').forEach(a => {
+                    a.addEventListener('mouseenter', () => a.style.background = '#fff3e0');
+                    a.addEventListener('mouseleave', () => a.style.background = '');
+                });
+                drop.style.display = 'block';
+            } catch {}
+        }
+
+        function escHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+    })();
+
+    // ── Update cart badge count (called from cart AJAX operations) ──
+    function updateCartBadge(count) {
+        const badge = document.getElementById('cart-badge-nav');
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // ── AJAX Add to cart ──
+    document.addEventListener('submit', async function(e) {
+        if (e.target && e.target.classList.contains('ajax-add-to-cart')) {
+            e.preventDefault();
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"]');
+            if(!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData(form);
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                // Fetch might redirect to login if session expired, returning HTML
+                if (res.redirected && res.url.includes('Login')) {
+                    window.location.href = res.url;
+                    return;
+                }
+                
+                const data = await res.json();
+                if (data.success) {
+                    updateCartBadge(data.itemCount);
+                    showToast(data.message || 'Thêm vào giỏ thành công!');
+                } else {
+                    alert('Có lỗi xảy ra!');
+                }
+            } catch(err) {
+                console.error(err);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+    });
+
+    function showToast(msg) {
+        let toast = document.getElementById('cart-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'cart-toast';
+            toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#198754;color:white;padding:12px 24px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;transition:opacity 0.3s;opacity:0;font-weight:600;display:flex;align-items:center;';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `<i class="fas fa-check-circle me-2" style="font-size:1.2rem;"></i>${msg}`;
+        toast.style.opacity = '1';
+        setTimeout(() => toast.style.opacity = '0', 2500);
     }
     </script>
     <style>

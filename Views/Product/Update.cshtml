@@ -27,7 +27,7 @@
                 </h5>
             </div>
             <div class="card-body p-4">
-                <form asp-action="Update" method="post">
+                <form asp-action="Update" method="post" enctype="multipart/form-data">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <!-- Hidden ID - quan trọng! -->
@@ -71,11 +71,18 @@
                             </select>
                         </div>
 
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fas fa-image me-1 text-secondary"></i>Ảnh Sản Phẩm (Tải lên ảnh mới sẽ ghi đè ảnh cũ)
+                            </label>
+                            <input type="file" name="imageUrl" class="form-control" accept="image/*" />
+                        </div>
+
                         <!-- Hiển thị ảnh hiện tại -->
                         @if (!string.IsNullOrEmpty(Model.ImageUrl))
                         {
-                            <div class="col-md-6">
-                                <label class="form-label">Ảnh Hiện Tại</label>
+                            <div class="col-12 mt-2">
+                                <label class="form-label text-muted small">Ảnh Hiện Tại:</label>
                                 <div>
                                     <img src="@Model.ImageUrl" alt="@Model.Name"
                                          class="img-thumbnail" style="max-height:100px;" />

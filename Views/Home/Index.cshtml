@@ -465,7 +465,7 @@
                                 {
                                     @if (User.Identity?.IsAuthenticated == true)
                                     {
-                                        <form asp-controller="Product" asp-action="AddToCart" method="post" class="flex-fill">
+                                        <form asp-controller="Product" asp-action="AddToCart" method="post" class="flex-fill ajax-add-to-cart">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="productId" value="@p.Id" />
                                             <input type="hidden" name="quantity" value="1" />

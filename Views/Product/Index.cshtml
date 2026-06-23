@@ -415,9 +415,14 @@ else
             }
             else
             {
-                <div class="row g-3">
+                <div class="row g-3 mb-4">
+                    @{
+                        var ratingsMap = ViewBag.Ratings as Dictionary<int, (double Avg, int Count)> ?? new Dictionary<int, (double Avg, int Count)>();
+                    }
                     @foreach (var p in Model)
                     {
+                        var rating = ratingsMap.ContainsKey(p.Id) ? ratingsMap[p.Id] : (Avg: 0.0, Count: 0);
+                        
                         <div class="col-6 col-md-4 col-lg-4">
                             <div class="product-card card">
                                 <div style="position:relative;">
@@ -446,6 +451,29 @@ else
                                 </div>
                                 <div class="card-body d-flex flex-column">
                                     <div class="product-name" title="@p.Name">@p.Name</div>
+                                    
+                                    <!-- Ratings -->
+                                    <div class="mb-2 d-flex align-items-center">
+                                        <div class="text-warning small me-2">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                if (i <= rating.Avg)
+                                                {
+                                                    <i class="fas fa-star"></i>
+                                                }
+                                                else if (i - 0.5 <= rating.Avg)
+                                                {
+                                                    <i class="fas fa-star-half-alt"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="far fa-star"></i>
+                                                }
+                                            }
+                                        </div>
+                                        <small class="text-muted">(@rating.Count)</small>
+                                    </div>
+                                    
                                     <div class="product-price mb-1">
                                         @p.Price.ToString("N0") ₫
                                         @if (!string.IsNullOrEmpty(p.Unit))
@@ -461,14 +489,76 @@ else
                                     {
                                         <small class="text-danger mb-2"><i class="fas fa-times-circle me-1"></i>Hết hàng</small>
                                     }
-                                    <a asp-action="Display" asp-route-id="@p.Id" class="btn btn-detail mt-auto">
-                                        <i class="fas fa-eye me-1"></i>Xem Chi Tiết
-                                    </a>
+                                    <!-- ACTION BUTTONS -->
+                                    <div class="product-actions mt-auto d-flex gap-2 w-100">
+                                        @if (p.Stock > 0)
+                                        {
+                                            @if (User.Identity?.IsAuthenticated == true)
+                                            {
+                                                <form asp-controller="Product" asp-action="AddToCart" method="post" class="flex-fill ajax-add-to-cart m-0">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="productId" value="@p.Id" />
+                                                    <input type="hidden" name="quantity" value="1" />
+                                                    <button type="submit" class="btn btn-detail w-100 m-0">
+                                                        <i class="fas fa-cart-plus"></i> <span class="d-none d-sm-inline">Thêm giỏ</span>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <a asp-controller="Account" asp-action="Login" class="btn btn-detail flex-fill text-center">
+                                                    <i class="fas fa-cart-plus"></i> <span class="d-none d-sm-inline">Mua ngay</span>
+                                                </a>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-secondary flex-fill fw-bold" disabled style="opacity:0.5; border-radius:8px;">
+                                                <i class="fas fa-times me-1"></i>Hết hàng
+                                            </button>
+                                        }
+                                        <a asp-action="Display" asp-route-id="@p.Id" class="btn btn-light d-flex align-items-center justify-content-center" style="border-radius:8px; border:1px solid #ddd; width:42px; flex-shrink:0;" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     }
                 </div>
+
+                <!-- Pagination -->
+                @if (ViewBag.TotalPages > 1)
+                {
+                    var currentPage = (int)ViewBag.CurrentPage;
+                    var totalPages = (int)ViewBag.TotalPages;
+                    
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <!-- Prev -->
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { page = currentPage - 1, search = ViewBag.SearchTerm, categoryId = selectedCategoryId, sort = currentSort, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice })" tabindex="-1">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Page numbers -->
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { page = i, search = ViewBag.SearchTerm, categoryId = selectedCategoryId, sort = currentSort, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice })">@i</a>
+                                </li>
+                            }
+
+                            <!-- Next -->
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { page = currentPage + 1, search = ViewBag.SearchTerm, categoryId = selectedCategoryId, sort = currentSort, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice })">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
             }
         </div>
     </div>

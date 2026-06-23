@@ -144,8 +144,34 @@
                     </div>
                 }
 
-                <!-- Product name -->
-                <h1 class="fw-bold mb-3" style="font-size:1.5rem; color:#1a1a2e;">@Model.Name</h1>
+                <!-- Product name & Wishlist -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h1 class="fw-bold mb-0" style="font-size:1.5rem; color:#1a1a2e;">@Model.Name</h1>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        var isWish = ViewBag.IsWishlisted == true;
+                        <button class="btn btn-sm btn-outline-danger" id="wishlist-btn" onclick="toggleWishlist(@Model.Id)">
+                            <i class="@(isWish ? "fas" : "far") fa-heart"></i>
+                        </button>
+                    }
+                </div>
+
+                <!-- Ratings Summary -->
+                <div class="mb-3 d-flex align-items-center">
+                    @{
+                        double avg = ViewBag.AvgRating ?? 0.0;
+                        int count = ViewBag.ReviewCount ?? 0;
+                    }
+                    <div class="text-warning me-2">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            if (i <= avg) { <i class="fas fa-star"></i> }
+                            else if (i - 0.5 <= avg) { <i class="fas fa-star-half-alt"></i> }
+                            else { <i class="far fa-star"></i> }
+                        }
+                    </div>
+                    <span class="text-muted small">@avg.ToString("0.0") (@count đánh giá)</span>
+                </div>
 
                 <!-- Price -->
                 <div class="mb-3">
@@ -268,6 +294,82 @@
     </div>
 </div>
 
+<!-- Reviews Section -->
+<div class="card border-0 shadow-sm mt-4 rounded-4">
+    <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-comments me-2 text-primary"></i>Đánh giá sản phẩm</h5>
+    </div>
+    <div class="card-body p-4">
+        @if (ViewBag.CanReview == true && ViewBag.AlreadyReviewed == false)
+        {
+            <div class="mb-4 bg-light p-3 rounded">
+                <h6 class="fw-bold mb-3">Viết đánh giá của bạn</h6>
+                <form asp-action="SubmitReview" method="post">
+                    <input type="hidden" name="productId" value="@Model.Id" />
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Đánh giá sao</label>
+                        <div class="rating-input d-flex gap-2">
+                            @for(int i=5; i>=1; i--)
+                            {
+                                <div class="form-check form-check-inline m-0">
+                                    <input class="form-check-input d-none" type="radio" name="rating" id="rating@i" value="@i" @(i==5?"checked":"")>
+                                    <label class="form-check-label text-warning fs-5" for="rating@i" style="cursor:pointer;"><i class="fas fa-star"></i></label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Nội dung (tùy chọn)</label>
+                        <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Gửi đánh giá</button>
+                </form>
+            </div>
+            <style>
+                .rating-input { flex-direction: row-reverse; justify-content: flex-end; }
+                .rating-input label { color: #ddd !important; }
+                .rating-input input:checked ~ label, .rating-input label:hover, .rating-input label:hover ~ label { color: #ffc107 !important; }
+            </style>
+        }
+        else if (ViewBag.AlreadyReviewed == true)
+        {
+            <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Bạn đã đánh giá sản phẩm này. Cảm ơn phản hồi của bạn!</div>
+        }
+
+        @{
+            var reviews = ViewBag.Reviews as List<TrieuDoanKy_W2.Models.ProductReview> ?? new();
+        }
+        @if (!reviews.Any())
+        {
+            <div class="text-center text-muted py-4">Chưa có đánh giá nào cho sản phẩm này.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                @foreach(var r in reviews)
+                {
+                    <div class="border-bottom pb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="fw-bold">@r.User?.FullName</div>
+                            <div class="text-muted small">@r.CreatedAt.ToString("dd/MM/yyyy")</div>
+                        </div>
+                        <div class="text-warning small mb-2">
+                            @for(int i=1; i<=5; i++)
+                            {
+                                <i class="@(i <= r.Rating ? "fas" : "far") fa-star"></i>
+                            }
+                        </div>
+                        @if(!string.IsNullOrEmpty(r.Comment))
+                        {
+                            <p class="mb-0 text-muted" style="font-size:14px;">@r.Comment</p>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
 <!-- Related Products -->
 @if (related.Any())
 {
@@ -327,5 +429,27 @@
         if (v < maxStock) qtyInput.value = v + 1;
         else alert('Số lượng không vượt quá tồn kho (' + maxStock + ')');
     });
+
+    async function toggleWishlist(id) {
+        try {
+            const res = await fetch('/Product/ToggleWishlist', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                },
+                body: 'productId=' + id
+            });
+            const data = await res.json();
+            const btn = document.getElementById('wishlist-btn');
+            if(data.liked) {
+                btn.innerHTML = '<i class="fas fa-heart"></i>';
+            } else {
+                btn.innerHTML = '<i class="far fa-heart"></i>';
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
 </script>
 }

@@ -1,0 +1,191 @@
+@model TrieuDoanKy_W2.Models.Order
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng #" + Model.Id;
+    
+    // Status color mapping
+    var statusColors = new Dictionary<string, string>
+    {
+        { "Chờ xác nhận", "warning" },
+        { "Đã xác nhận", "info" },
+        { "Đang giao hàng", "primary" },
+        { "Hoàn thành", "success" },
+        { "Đã hủy", "danger" }
+    };
+    var badgeClass = statusColors.ContainsKey(Model.Status) ? statusColors[Model.Status] : "secondary";
+
+    // Timeline calculation
+    var stages = new[] { "Chờ xác nhận", "Đã xác nhận", "Đang giao hàng", "Hoàn thành" };
+    int currentStageIndex = Array.IndexOf(stages, Model.Status);
+    if (Model.Status == "Đã hủy") currentStageIndex = -1;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-action="Profile">Tài khoản</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Đơn hàng #@Model.Id</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- Order Status & Timeline -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-box-open me-2 text-primary"></i>Trạng thái đơn hàng</h5>
+                    <span class="badge bg-@badgeClass rounded-pill px-3 py-2" style="font-size:14px;">@Model.Status</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (Model.Status != "Đã hủy")
+                    {
+                        <div class="position-relative m-4">
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: @(currentStageIndex * 33.33)%;" 
+                                     aria-valuenow="@(currentStageIndex * 33.33)" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="d-flex justify-content-between position-absolute w-100" style="top: -15px;">
+                                @for (int i = 0; i < stages.Length; i++)
+                                {
+                                    var isCompleted = i <= currentStageIndex;
+                                    var iconClass = isCompleted ? "bg-success text-white" : "bg-light text-muted border";
+                                    var textClass = isCompleted ? "text-dark fw-bold" : "text-muted";
+                                    <div class="text-center" style="width: 32px;">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2 @iconClass" style="width: 32px; height: 32px;">
+                                            @if (i == 0) { <i class="fas fa-file-invoice"></i> }
+                                            @if (i == 1) { <i class="fas fa-check"></i> }
+                                            @if (i == 2) { <i class="fas fa-truck"></i> }
+                                            @if (i == 3) { <i class="fas fa-box"></i> }
+                                        </div>
+                                        <div class="@textClass" style="font-size: 11px; white-space: nowrap; margin-left: -20px; width: 72px;">@stages[i]</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="mt-5 text-center text-muted small">
+                            <i class="fas fa-clock me-1"></i> Ngày đặt: @Model.OrderDate.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-times-circle text-danger mb-3" style="font-size: 48px;"></i>
+                            <h5>Đơn hàng đã bị hủy</h5>
+                            <p class="text-muted mb-0">Rất tiếc, đơn hàng này đã được hủy.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-shopping-bag me-2 text-primary"></i>Sản phẩm đã đặt (@Model.OrderDetails?.Count)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Sản phẩm</th>
+                                    <th class="text-center">Đơn giá</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-end pe-4">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderDetails ?? new())
+                                {
+                                    var p = item.Product;
+                                    var img = p?.ImageUrl ?? "/images/placeholder.png";
+                                    var name = p?.Name ?? "Sản phẩm không tồn tại";
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <img src="@img" class="rounded border" style="width: 60px; height: 60px; object-fit: cover;" alt="@name">
+                                                <div class="ms-3">
+                                                    <h6 class="mb-1">
+                                                        @if (p != null)
+                                                        {
+                                                            <a asp-controller="Product" asp-action="Display" asp-route-id="@p.Id" class="text-dark text-decoration-none">@name</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            @name
+                                                        }
+                                                    </h6>
+                                                    @if (Model.Status == "Hoàn thành" && p != null)
+                                                    {
+                                                        <a asp-controller="Product" asp-action="Display" asp-route-id="@p.Id" class="badge bg-warning text-dark text-decoration-none"><i class="fas fa-star text-dark me-1"></i>Đánh giá ngay</a>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">@item.Price.ToString("N0") ₫</td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end pe-4 fw-bold text-danger">@((item.Price * item.Quantity).ToString("N0")) ₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Payment & Shipping Info -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Thông tin thanh toán</h5>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Tổng phụ:</span>
+                        <span>@Model.TotalPrice.ToString("N0") ₫</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Phí vận chuyển:</span>
+                        <span>Miễn phí</span>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Tổng cộng:</span>
+                        <span class="fs-4 fw-bold text-danger">@Model.TotalPrice.ToString("N0") ₫</span>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Phương thức thanh toán</small>
+                            <div class="fw-semibold"><i class="fas fa-money-bill-wave text-success me-2"></i>@Model.PaymentMethod</div>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block mb-1">Địa chỉ giao hàng</small>
+                            <div class="fw-semibold"><i class="fas fa-map-marker-alt text-danger me-2"></i>@Model.ShippingAddress</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            @if (Model.Status == "Chờ xác nhận")
+            {
+                <div class="card border-0 shadow-sm rounded-4 border-danger border border-2">
+                    <div class="card-body p-4 text-center">
+                        <h6 class="text-danger fw-bold mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Bạn muốn hủy đơn?</h6>
+                        <p class="small text-muted mb-3">Đơn hàng chỉ có thể hủy khi đang chờ xác nhận.</p>
+                        <form asp-action="CancelOrder" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không? Quá trình này không thể hoàn tác.');">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-outline-danger w-100 fw-bold">Hủy đơn hàng</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (Model.Status == "Hoàn thành")
+            {
+                <a asp-controller="Product" asp-action="Index" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow-sm">Mua lại đơn này</a>
+            }
+        </div>
+    </div>
+</div>

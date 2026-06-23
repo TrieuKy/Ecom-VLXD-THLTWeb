@@ -88,13 +88,13 @@ else
                                             </div>
                                         </td>
                                         <td class="text-center">
-                                            <form asp-action="UpdateCartQuantity" method="post" class="d-flex align-items-center justify-content-center" style="max-width:120px; margin: 0 auto;">
+                                            <form action="/Product/UpdateCartQuantity" method="post" class="d-flex align-items-center justify-content-center form-update-cart" style="max-width:120px; margin: 0 auto;">
                                                 <input type="hidden" name="id" value="@item.Id" />
-                                                <button type="submit" name="quantity" value="@(item.Quantity - 1)" class="btn btn-sm btn-outline-secondary px-2">
+                                                <button type="submit" name="quantity" value="@(item.Quantity - 1)" class="btn btn-sm btn-outline-secondary px-2 btn-qty-minus">
                                                     <i class="fas fa-minus" style="font-size:10px;"></i>
                                                 </button>
-                                                <input type="number" class="form-control form-control-sm text-center mx-1 bg-white" value="@item.Quantity" readonly style="width:45px;" />
-                                                <button type="submit" name="quantity" value="@(item.Quantity + 1)" class="btn btn-sm btn-outline-secondary px-2">
+                                                <input type="number" class="form-control form-control-sm text-center mx-1 bg-white input-qty" value="@item.Quantity" readonly style="width:45px;" />
+                                                <button type="submit" name="quantity" value="@(item.Quantity + 1)" class="btn btn-sm btn-outline-secondary px-2 btn-qty-plus">
                                                     <i class="fas fa-plus" style="font-size:10px;"></i>
                                                 </button>
                                             </form>
@@ -102,11 +102,11 @@ else
                                         <td class="text-end fw-semibold text-muted">
                                             @product.Price.ToString("N0") ₫
                                         </td>
-                                        <td class="text-end fw-bold text-danger fs-6">
+                                        <td class="text-end fw-bold text-danger fs-6 line-total" id="line-total-@item.Id">
                                             @itemTotal.ToString("N0") ₫
                                         </td>
                                         <td class="text-center pe-4">
-                                            <form asp-action="RemoveFromCart" method="post">
+                                            <form action="/Product/RemoveFromCart" method="post" class="form-remove-cart">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@item.Id" />
                                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Xóa" style="width:36px;height:36px;padding:0;">
@@ -132,16 +132,16 @@ else
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Tổng số lượng:</span>
-                        <span class="fw-bold">@Model.Items.Sum(i => i.Quantity)</span>
+                        <span class="fw-bold" id="cart-total-qty">@Model.Items.Sum(i => i.Quantity)</span>
                     </div>
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Tạm tính:</span>
-                        <span class="fw-bold">@Model.TotalPrice.ToString("N0") ₫</span>
+                        <span class="fw-bold cart-total-price">@Model.TotalPrice.ToString("N0") ₫</span>
                     </div>
                     <hr />
                     <div class="d-flex justify-content-between mb-4">
                         <span class="fw-bold fs-5">Thành tiền:</span>
-                        <span class="fw-bold text-danger fs-4">@Model.TotalPrice.ToString("N0") ₫</span>
+                        <span class="fw-bold text-danger fs-4 cart-total-price">@Model.TotalPrice.ToString("N0") ₫</span>
                     </div>
 
                     <a asp-controller="Product" asp-action="Checkout" class="btn btn-primary btn-lg w-100 fw-bold mb-3 rounded-pill shadow-sm">
@@ -154,4 +154,81 @@ else
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+<script>
+$(function(){
+    // Update Quantity
+    $('.form-update-cart button').click(function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        var tr = form.closest('tr');
+        var id = form.find('input[name="id"]').val();
+        var qty = $(this).val();
+        var token = $('input[name="__RequestVerificationToken"]').val() || '';
+
+        $.ajax({
+            url: '/Product/UpdateCartQuantity',
+            type: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            data: { id: id, quantity: qty, __RequestVerificationToken: token },
+            success: function(res) {
+                if(res.error) alert(res.error);
+                if(res.success) {
+                    if(qty == 0) {
+                        tr.fadeOut(function(){ $(this).remove(); checkEmpty(); });
+                    } else {
+                        form.find('.input-qty').val(qty);
+                        form.find('.btn-qty-minus').val(qty - 1);
+                        form.find('.btn-qty-plus').val(parseInt(qty) + 1);
+                        $('#line-total-' + id).text(res.lineTotal + ' ₫');
+                    }
+                    updateTotals(res.newTotal, res.itemCount);
+                }
+            }
+        });
+    });
+
+    // Remove item
+    $('.form-remove-cart').submit(function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var tr = form.closest('tr');
+        var id = form.find('input[name="id"]').val();
+
+        $.ajax({
+            url: '/Product/RemoveFromCart',
+            type: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            data: form.serialize(),
+            success: function(res) {
+                if(res.success) {
+                    tr.fadeOut(function(){ $(this).remove(); checkEmpty(); });
+                    updateTotals(res.newTotal, res.itemCount);
+                }
+            }
+        });
+    });
+
+    function updateTotals(newTotal, itemCount) {
+        $('.cart-total-price').text(newTotal + ' ₫');
+        // Let's recalculate total qty from all inputs
+        let sum = 0;
+        $('.input-qty').each(function(){ sum += parseInt($(this).val()||0); });
+        $('#cart-total-qty').text(sum);
+        
+        // Update nav badge via layout function
+        if(typeof updateCartBadge === 'function') {
+            updateCartBadge(sum);
+        }
+    }
+
+    function checkEmpty() {
+        if($('tbody tr').length === 0) {
+            location.reload(); // Reload to show empty state
+        }
+    }
+});
+</script>
 }

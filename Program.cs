@@ -63,7 +63,10 @@ if (!string.IsNullOrEmpty(facebookAppId) && !string.IsNullOrEmpty(facebookAppSec
 }
 
 // ────── Services ──────
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<TrieuDoanKy_W2.Filters.CartCountFilter>();
+});
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();

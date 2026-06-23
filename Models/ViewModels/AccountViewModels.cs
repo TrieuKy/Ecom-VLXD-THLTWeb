@@ -85,4 +85,29 @@ namespace TrieuDoanKy_W2.Models.ViewModels
         public List<ShoppingCartItem> Items { get; set; } = new();
         public decimal TotalPrice => Items.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
     }
+
+    public class ForgotPasswordViewModel
+    {
+        [Required(ErrorMessage = "Vui lòng nhập email")]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordViewModel
+    {
+        [Required]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Token { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu mới")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "Mật khẩu xác nhận không khớp")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
 }

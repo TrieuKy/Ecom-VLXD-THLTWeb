@@ -29,8 +29,9 @@ namespace TrieuDoanKy_W2.Controllers
         }
 
         // GET: Product/Index
-        public async Task<IActionResult> Index(string? search, int? categoryId, string? sort, decimal? minPrice, decimal? maxPrice)
+        public async Task<IActionResult> Index(string? search, int? categoryId, string? sort, decimal? minPrice, decimal? maxPrice, int page = 1)
         {
+            const int pageSize = 12;
             var query = _context.Products.Include(p => p.Category).AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -68,7 +69,27 @@ namespace TrieuDoanKy_W2.Controllers
             ViewBag.FilterCategories = categories;
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
 
-            var products = await query.ToListAsync();
+            // Avg ratings map
+            var ratings = await _context.ProductReviews
+                .GroupBy(r => r.ProductId)
+                .Select(g => new { ProductId = g.Key, Avg = g.Average(r => (double)r.Rating), Count = g.Count() })
+                .ToListAsync();
+            
+            var ratingsDict = new Dictionary<int, (double Avg, int Count)>();
+            foreach (var r in ratings)
+            {
+                ratingsDict[r.ProductId] = (r.Avg, r.Count);
+            }
+            ViewBag.Ratings = ratingsDict;
+
+            // Pagination
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
+            var products = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
             return View(products);
         }
 
@@ -89,6 +110,29 @@ namespace TrieuDoanKy_W2.Controllers
                 .Take(4)
                 .ToListAsync();
             ViewBag.RelatedProducts = related;
+
+            // Reviews
+            var reviews = await _context.ProductReviews
+                .Include(r => r.User)
+                .Where(r => r.ProductId == id)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+            ViewBag.Reviews = reviews;
+            ViewBag.AvgRating = reviews.Any() ? reviews.Average(r => (double)r.Rating) : 0.0;
+            ViewBag.ReviewCount = reviews.Count;
+
+            // Check if current user can review (bought the product)
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userId = _userManager.GetUserId(User);
+                ViewBag.CanReview = await _context.OrderDetails
+                    .AnyAsync(od => od.ProductId == id && od.Order!.UserId == userId && od.Order.Status == "Hoàn thành");
+                ViewBag.AlreadyReviewed = await _context.ProductReviews
+                    .AnyAsync(r => r.ProductId == id && r.UserId == userId);
+                // Wishlist state
+                ViewBag.IsWishlisted = await _context.Wishlists
+                    .AnyAsync(w => w.ProductId == id && w.UserId == userId);
+            }
 
             return View(product);
         }
@@ -122,8 +166,77 @@ namespace TrieuDoanKy_W2.Controllers
                 }
 
                 product.CreatedAt = DateTime.Now;
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Đã thêm sản phẩm \"{product.Name}\" thành công!";
+                return RedirectToAction(nameof(Index));
+            }
 
+            await LoadCategoriesAsync();
+            return View(product);
         }
+
+        // GET: Product/Update/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Update(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null) return NotFound();
+            await LoadCategoriesAsync();
+            return View(product);
+        }
+
+        // POST: Product/Update/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Update(int id, Product product, IFormFile? imageUrl, List<IFormFile>? imageUrls)
+        {
+            if (id != product.Id) return BadRequest();
+
+            if (ModelState.IsValid)
+            {
+                var existing = await _context.Products.FindAsync(id);
+                if (existing == null) return NotFound();
+
+                existing.Name        = product.Name;
+                existing.Price       = product.Price;
+                existing.Description = product.Description;
+                existing.Stock       = product.Stock;
+                existing.Unit        = product.Unit;
+                existing.CategoryId  = product.CategoryId;
+                existing.UpdatedAt   = DateTime.Now;
+
+                if (imageUrl != null && imageUrl.Length > 0)
+                    existing.ImageUrl = await SaveImageAsync(imageUrl);
+
+                if (imageUrls != null && imageUrls.Any())
+                {
+                    var urls = new List<string>();
+                    foreach (var file in imageUrls)
+                        if (file.Length > 0)
+                            urls.Add(await SaveImageAsync(file));
+                    existing.ImageUrls = System.Text.Json.JsonSerializer.Serialize(urls);
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Đã cập nhật sản phẩm \"{existing.Name}\" thành công!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await LoadCategoriesAsync();
+            return View(product);
+        }
+
+        // GET: Product/Delete/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var product = await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null) return NotFound();
+            return View(product);
+        }
+
 
         // POST: Product/Delete/5
         [HttpPost, ActionName("Delete")]
@@ -316,6 +429,16 @@ namespace TrieuDoanKy_W2.Controllers
                 });
 
             await _context.SaveChangesAsync();
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var cartItems = await _context.ShoppingCartItems
+                    .Where(i => i.ApplicationUserId == user!.Id)
+                    .ToListAsync();
+                var itemCount = cartItems.Sum(i => i.Quantity);
+                return Json(new { success = true, itemCount = itemCount, message = "Đã thêm vào giỏ hàng!" });
+            }
+
             TempData["Success"] = "Đã thêm vào giỏ hàng!";
             return RedirectToAction(nameof(Display), new { id = productId });
         }
@@ -330,6 +453,17 @@ namespace TrieuDoanKy_W2.Controllers
                 _context.ShoppingCartItems.Remove(item);
                 await _context.SaveChangesAsync();
             }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var userId = _userManager.GetUserId(User)!;
+                var cartItems = await _context.ShoppingCartItems
+                    .Include(i => i.Product)
+                    .Where(i => i.ApplicationUserId == userId)
+                    .ToListAsync();
+                var newTotal = cartItems.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
+                return Json(new { success = true, newTotal = newTotal.ToString("N0"), itemCount = cartItems.Count });
+            }
             return RedirectToAction(nameof(Cart));
         }
 
@@ -340,15 +474,16 @@ namespace TrieuDoanKy_W2.Controllers
             var item = await _context.ShoppingCartItems
                 .Include(i => i.Product)
                 .FirstOrDefaultAsync(i => i.Id == id);
+
+            string? errorMsg = null;
             if (item != null)
             {
                 if (quantity > 0)
                 {
-                    // Kiểm tra tồn kho
                     if (item.Product != null && quantity > item.Product.Stock)
                     {
-                        TempData["Error"] = $"Chỉ còn {item.Product.Stock} sản phẩm trong kho!";
-                        return RedirectToAction(nameof(Cart));
+                        errorMsg = $"Chỉ còn {item.Product.Stock} sản phẩm trong kho!";
+                        quantity = item.Product.Stock;
                     }
                     item.Quantity = quantity;
                 }
@@ -358,6 +493,20 @@ namespace TrieuDoanKy_W2.Controllers
                 }
                 await _context.SaveChangesAsync();
             }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var userId = _userManager.GetUserId(User)!;
+                var cartItems = await _context.ShoppingCartItems
+                    .Include(i => i.Product)
+                    .Where(i => i.ApplicationUserId == userId)
+                    .ToListAsync();
+                var newTotal = cartItems.Sum(i => (i.Product?.Price ?? 0) * i.Quantity);
+                var lineTotal = item != null && quantity > 0 ? ((item.Product?.Price ?? 0) * quantity).ToString("N0") : "0";
+                return Json(new { success = true, newTotal = newTotal.ToString("N0"), lineTotal, error = errorMsg, itemCount = cartItems.Count });
+            }
+
+            if (errorMsg != null) TempData["Error"] = errorMsg;
             return RedirectToAction(nameof(Cart));
         }
 
@@ -493,6 +642,93 @@ namespace TrieuDoanKy_W2.Controllers
         {
             var categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
             ViewBag.Categories = new SelectList(categories, "Id", "Name");
+        }
+
+        // ────── SEARCH AUTOCOMPLETE ──────
+
+        [HttpGet]
+        public async Task<IActionResult> SearchSuggestions(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+                return Json(new List<object>());
+
+            var results = await _context.Products
+                .Where(p => p.Name.Contains(q))
+                .OrderBy(p => p.Name)
+                .Take(10)
+                .Select(p => new { p.Id, p.Name, p.ImageUrl, Price = p.Price.ToString("N0") })
+                .ToListAsync();
+
+            return Json(results);
+        }
+
+        // ────── WISHLIST ──────
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> ToggleWishlist(int productId)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var existing = await _context.Wishlists
+                .FirstOrDefaultAsync(w => w.UserId == userId && w.ProductId == productId);
+
+            bool liked;
+            if (existing != null)
+            {
+                _context.Wishlists.Remove(existing);
+                liked = false;
+            }
+            else
+            {
+                _context.Wishlists.Add(new Wishlist { UserId = userId, ProductId = productId, CreatedAt = DateTime.Now });
+                liked = true;
+            }
+            await _context.SaveChangesAsync();
+            return Json(new { liked });
+        }
+
+        // ────── PRODUCT REVIEWS ──────
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> SubmitReview(int productId, int rating, string? comment)
+        {
+            var userId = _userManager.GetUserId(User)!;
+
+            // Kiểm tra đã mua chưa
+            var hasBought = await _context.OrderDetails
+                .AnyAsync(od => od.ProductId == productId && od.Order!.UserId == userId && od.Order.Status == "Hoàn thành");
+
+            if (!hasBought)
+            {
+                TempData["Error"] = "Bạn cần mua và nhận sản phẩm này trước khi đánh giá.";
+                return RedirectToAction(nameof(Display), new { id = productId });
+            }
+
+            // Kiểm tra đã review chưa
+            var alreadyReviewed = await _context.ProductReviews
+                .AnyAsync(r => r.ProductId == productId && r.UserId == userId);
+
+            if (alreadyReviewed)
+            {
+                TempData["Error"] = "Bạn đã đánh giá sản phẩm này rồi.";
+                return RedirectToAction(nameof(Display), new { id = productId });
+            }
+
+            rating = Math.Clamp(rating, 1, 5);
+            _context.ProductReviews.Add(new ProductReview
+            {
+                UserId = userId,
+                ProductId = productId,
+                Rating = rating,
+                Comment = comment?.Trim(),
+                CreatedAt = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Cảm ơn bạn đã đánh giá sản phẩm!";
+            return RedirectToAction(nameof(Display), new { id = productId });
         }
     }
 }

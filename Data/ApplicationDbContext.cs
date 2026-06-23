@@ -17,6 +17,8 @@ namespace TrieuDoanKy_W2.Data
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<ShoppingCartItem> ShoppingCartItems { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
+        public DbSet<Wishlist> Wishlists { get; set; }
+        public DbSet<ProductReview> ProductReviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -33,6 +35,16 @@ namespace TrieuDoanKy_W2.Data
             builder.Entity<OrderDetail>()
                 .Property(od => od.Price)
                 .HasColumnType("decimal(18,2)");
+
+            // Unique: one wishlist entry per user per product
+            builder.Entity<Wishlist>()
+                .HasIndex(w => new { w.UserId, w.ProductId })
+                .IsUnique();
+
+            // Unique: one review per user per product
+            builder.Entity<ProductReview>()
+                .HasIndex(r => new { r.UserId, r.ProductId })
+                .IsUnique();
         }
     }
 }
